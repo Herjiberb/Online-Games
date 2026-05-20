@@ -60,7 +60,7 @@
             <span class="animate-pulse">⚡</span> NEON SHOWDOWN
         </h1>
         <div id="connectionStatus" class="flex items-center gap-2 text-sm bg-gray-800 px-3 py-1.5 rounded-full border border-gray-700">
-            <span class="w-2.5 h-2.5 rounded-full bg-red-500 animate-ping"></span>
+            <span class="w-2.5 h-2.5 rounded-full bg-red-500 animate-ping" id="statusIndicator"></span>
             <span class="text-gray-400" id="statusText">Disconnected</span>
         </div>
     </header>
@@ -74,7 +74,7 @@
                     <span class="orbitron text-xs font-bold text-emerald-400 tracking-wider uppercase bg-emerald-950/50 px-3 py-1 rounded-full border border-emerald-500/20">AUTHORITATIVE SERVER</span>
                     <h2 class="orbitron text-3xl font-bold mt-4 mb-2 text-white">HOST ARENA</h2>
                     <p class="text-gray-400 text-sm leading-relaxed mb-6">
-                        Spin up a physics-authoritative server right on your device. You can play directly as a player, control the rules, view system performance, and kick rulebreakers instantly.
+                        Spin up a physics-authoritative server right on your device. You can play directly as a player, control the rules, view system performance, and toggle OP mode or kick players instantly.
                     </p>
                     <div class="space-y-3 mb-6">
                         <label class="block text-xs font-semibold uppercase tracking-wider text-gray-400">Your Nickname</label>
@@ -123,17 +123,17 @@
                 <div class="absolute top-0 left-0 w-1.5 h-full bg-emerald-500" id="roleIndicator"></div>
                 <span class="text-xs uppercase font-bold text-gray-400 tracking-widest mb-1">Room Code</span>
                 <span id="displayRoomCode" class="orbitron text-3xl font-black text-emerald-400 tracking-widest select-all pointer-events-auto cursor-pointer" title="Click to copy">------</span>
-                <span class="text-[10px] text-gray-500 mt-1">Share this code with other players</span>
+                <span class="text-[10px] text-gray-500 mt-1">Click room code to copy</span>
             </div>
 
             <!-- LEADERBOARD & PLAYERS -->
-            <div class="flex-1 bg-gray-900 border border-gray-800 rounded-xl p-4 flex flex-col min-h-[250px] overflow-hidden">
+            <div class="flex-1 bg-gray-900 border border-gray-800 rounded-xl p-4 flex flex-col min-h-[300px] overflow-hidden">
                 <h3 class="orbitron text-sm font-bold text-gray-400 tracking-wider uppercase mb-3 flex items-center justify-between">
                     <span>Active Combatants</span>
                     <span id="playerCount" class="bg-gray-800 text-xs text-emerald-400 px-2.5 py-0.5 rounded-full border border-gray-700">0</span>
                 </h3>
                 <div id="playerList" class="flex-1 overflow-y-auto space-y-2 pr-1">
-                    <!-- Dynamic List of Players with kick buttons if Host -->
+                    <!-- Dynamic List of Players with OP and kick buttons if Host -->
                 </div>
             </div>
 
@@ -142,10 +142,10 @@
                 <h3 class="orbitron text-xs font-bold text-gray-400 tracking-wider uppercase mb-3">Controls</h3>
                 <div class="text-xs text-gray-400 space-y-1.5 leading-relaxed">
                     <p><strong class="text-white">A / D / Arrows:</strong> Move Left / Right</p>
+                    <p><strong class="text-white">Double-Tap A/D:</strong> Air Dash (Level 2+)</p>
                     <p><strong class="text-white">W / Up Arrow:</strong> Jump (Double Jump supported!)</p>
                     <p><strong class="text-white">S / Down (Air):</strong> Ground Pound (Level 3+)</p>
-                    <p><strong class="text-white">Double Tap A/D:</strong> Air Dash (Level 2+)</p>
-                    <p><strong class="text-white">Left Click:</strong> Shoot Pistol</p>
+                    <p><strong class="text-white">Left Click:</strong> Shoot Weapon</p>
                     <p><strong class="text-white">Q / Right Click:</strong> Throw Grenade</p>
                 </div>
             </div>
@@ -206,8 +206,8 @@
                     <!-- Right: Weapon & Cooldowns -->
                     <div class="flex items-center gap-4">
                         <div class="flex flex-col items-end">
-                            <span class="text-[10px] uppercase font-bold text-gray-400">Pistol Ammo</span>
-                            <span class="orbitron text-emerald-400 font-bold text-sm">⚔️ UNLIMITED</span>
+                            <span class="text-[10px] uppercase font-bold text-gray-400">Weapon Info</span>
+                            <span id="hudWeaponText" class="orbitron text-emerald-400 font-bold text-sm">⚔️ UNLIMITED PISTOL</span>
                         </div>
                         <div class="w-px h-8 bg-gray-800"></div>
                         <div class="flex flex-col items-end">
@@ -245,7 +245,7 @@
     </div>
 
     <footer class="p-3 bg-gray-950 border-t border-gray-900 flex justify-between items-center text-xs text-gray-500 z-10">
-        <span>Neon Showdown © 2026. Built with Pure PeerJS & autoritative Canvas.</span>
+        <span>Neon Showdown © 2026. Built with Pure PeerJS & authoritative scrolling Canvas.</span>
         <span id="activeRoleText">Mode: Idle</span>
     </footer>
 
@@ -275,7 +275,7 @@
                 osc.frequency.setValueAtTime(800, now);
                 osc.frequency.exponentialRampToValueAtTime(100, now + 0.15);
                 
-                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.setValueAtTime(0.15, now);
                 gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
                 
                 osc.connect(gain);
@@ -294,7 +294,7 @@
                 osc.frequency.setValueAtTime(180, now);
                 osc.frequency.exponentialRampToValueAtTime(450, now + 0.12);
                 
-                gain.gain.setValueAtTime(0.15, now);
+                gain.gain.setValueAtTime(0.1, now);
                 gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
                 
                 osc.connect(gain);
@@ -324,7 +324,7 @@
                 filter.frequency.exponentialRampToValueAtTime(40, now + 0.35);
                 
                 const gain = this.ctx.createGain();
-                gain.gain.setValueAtTime(0.4, now);
+                gain.gain.setValueAtTime(0.35, now);
                 gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
                 
                 noise.connect(filter);
@@ -345,7 +345,7 @@
                 osc.frequency.setValueAtTime(100, now);
                 osc.frequency.linearRampToValueAtTime(350, now + 0.1);
                 
-                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.setValueAtTime(0.15, now);
                 gain.gain.linearRampToValueAtTime(0.01, now + 0.1);
                 
                 osc.connect(gain);
@@ -364,7 +364,7 @@
                 osc.frequency.setValueAtTime(523.25, now); // C5
                 osc.frequency.setValueAtTime(783.99, now + 0.08); // G5
                 
-                gain.gain.setValueAtTime(0.15, now);
+                gain.gain.setValueAtTime(0.12, now);
                 gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
                 
                 osc.connect(gain);
@@ -383,7 +383,7 @@
                 osc.frequency.setValueAtTime(120, now);
                 osc.frequency.exponentialRampToValueAtTime(30, now + 0.06);
                 
-                gain.gain.setValueAtTime(0.1, now);
+                gain.gain.setValueAtTime(0.08, now);
                 gain.gain.exponentialRampToValueAtTime(0.01, now + 0.06);
                 
                 osc.connect(gain);
@@ -404,6 +404,7 @@
         const playerList = document.getElementById('playerList');
         const playerCount = document.getElementById('playerCount');
         const connectionStatus = document.getElementById('connectionStatus');
+        const statusIndicator = document.getElementById('statusIndicator');
         const statusText = document.getElementById('statusText');
         const activeRoleText = document.getElementById('activeRoleText');
         const roleIndicator = document.getElementById('roleIndicator');
@@ -420,6 +421,7 @@
         const hudLevel = document.getElementById('hudLevel');
         const hudXpBar = document.getElementById('hudXpBar');
         const hudXpGoalText = document.getElementById('hudXpGoalText');
+        const hudWeaponText = document.getElementById('hudWeaponText');
         const hudGrenadeIcon = document.getElementById('hudGrenadeIcon');
         const hudGrenadeText = document.getElementById('hudGrenadeText');
         const respawnOverlay = document.getElementById('respawnOverlay');
@@ -439,21 +441,35 @@
         let connections = {}; // For host: ID -> Connection; For client: contains only connection to host
         let roomCode = null;
 
-        // Game Configuration & Static State
-        const ARENA_WIDTH = 960;
-        const ARENA_HEIGHT = 600;
+        // Expanded Arena Configuration & Static State
+        const ARENA_WIDTH = 1920;
+        const ARENA_HEIGHT = 1200;
         const GRAVITY = 0.45;
-        const RESPAWN_TIME = 15; // seconds
+        const RESPAWN_TIME = 10; // seconds
         const IFRAME_TIME = 2; // seconds
 
-        // Platform coordinates (Map design)
+        // Dynamic Lerping Camera Object
+        const camera = { x: 0, y: 0 };
+
+        // Platform coordinates (Newly enlarged map layout!)
         const PLATFORMS = [
-            { x: 0, y: 550, width: ARENA_WIDTH, height: 50, isFloor: true }, // Main Floor
-            { x: 100, y: 410, width: 250, height: 16 }, // Bottom Left
-            { x: 610, y: 410, width: 250, height: 16 }, // Bottom Right
-            { x: 380, y: 310, width: 200, height: 16 }, // Mid center
-            { x: 150, y: 190, width: 200, height: 16 }, // Top Left
-            { x: 610, y: 190, width: 200, height: 16 }  // Top Right
+            { x: 0, y: 1150, width: ARENA_WIDTH, height: 50, isFloor: true }, // Main Floor
+            
+            // Bottom Tier Platforms
+            { x: 100, y: 950, width: 320, height: 18 },
+            { x: 1500, y: 950, width: 320, height: 18 },
+            { x: 520, y: 860, width: 400, height: 18 },
+            { x: 1000, y: 860, width: 400, height: 18 },
+            
+            // Middle Tier Platforms
+            { x: 220, y: 690, width: 350, height: 18 },
+            { x: 1350, y: 690, width: 350, height: 18 },
+            { x: 680, y: 560, width: 560, height: 18 },
+            
+            // Top Tier Platforms
+            { x: 120, y: 390, width: 400, height: 18 },
+            { x: 1400, y: 390, width: 400, height: 18 },
+            { x: 600, y: 250, width: 720, height: 18 }
         ];
 
         // Active dynamic logic states (Only fully handled on Host)
@@ -464,6 +480,9 @@
         let explosions = [];  // Splash damage explosions visually and logically
         let particles = [];   // Pure visual sparks
 
+        // Host Rain Drop Spawner
+        let dropSpawnTimer = 0;
+
         // Keyboard & Mouse inputs for Local Player
         const inputs = {
             left: false,
@@ -472,6 +491,8 @@
             down: false,
             shoot: false,
             grenade: false,
+            rawMouseX: 0,
+            rawMouseY: 0,
             mouseX: 0,
             mouseY: 0
         };
@@ -532,6 +553,9 @@
                 this.xp = 0;
                 this.level = 1;
 
+                // Host OP status (Allows Scatter-Bullets, 0-grenade-cooldown, and Godmode)
+                this.isOP = false;
+
                 // Physics states
                 this.onGround = false;
                 this.jumpsLeft = 2;
@@ -550,7 +574,7 @@
             }
 
             getIsInvincible() {
-                return this.iFrameTicks > 0;
+                return this.iFrameTicks > 0 || this.isOP;
             }
         }
 
@@ -628,19 +652,13 @@
         // Easy Code Copying function
         displayRoomCode.addEventListener('click', () => {
             if (roomCode) {
-                document.execCommand('copy'); // Fallback for secure environment if clipboard API blocks
-                navigator.clipboard.writeText(roomCode).then(() => {
-                    showToast("Room code copied to clipboard!");
-                }).catch(() => {
-                    // Fail-safe copy
-                    const dummy = document.createElement("textarea");
-                    document.body.appendChild(dummy);
-                    dummy.value = roomCode;
-                    dummy.select();
-                    document.execCommand("copy");
-                    document.body.removeChild(dummy);
-                    showToast("Room code copied to clipboard!");
-                });
+                const dummy = document.createElement("textarea");
+                document.body.appendChild(dummy);
+                dummy.value = roomCode;
+                dummy.select();
+                document.execCommand("copy");
+                document.body.removeChild(dummy);
+                showToast("Room code copied to clipboard!");
             }
         });
 
@@ -649,8 +667,9 @@
             sfx.init();
 
             // Set up visual UI load state
-            document.getElementById('statusText').innerText = "Connecting...";
-            document.getElementById('statusText').className = "text-yellow-400";
+            statusIndicator.className = "w-2.5 h-2.5 rounded-full bg-yellow-500 animate-pulse";
+            statusText.innerText = "Connecting...";
+            statusText.className = "text-yellow-400";
 
             if (hostRole) {
                 isHost = true;
@@ -686,6 +705,7 @@
         // HOST-SPECIFIC CONNECTIONS
         // -------------------------------------------------------------
         function onHostOpened(name) {
+            statusIndicator.className = "w-2.5 h-2.5 rounded-full bg-emerald-500";
             statusText.innerText = "Host Ready";
             statusText.className = "text-emerald-400 font-bold";
             activeRoleText.innerText = "Mode: Dedicated Host";
@@ -693,7 +713,7 @@
             displayRoomCode.innerText = roomCode;
 
             // Instantly spawn host as player in own state
-            players['host'] = new Player('host', name, 150, 200, '#10b981');
+            players['host'] = new Player('host', name, 400, 200, '#10b981');
             updateUILeaderboard();
 
             // Listen for connections
@@ -710,8 +730,6 @@
             conn.on('open', () => {
                 const connId = conn.peer;
                 connections[connId] = conn;
-                
-                // Let other clients know who connected eventually. For now, wait for join request.
                 console.log(`Connection opened: ${connId}`);
             });
 
@@ -719,9 +737,9 @@
                 const connId = conn.peer;
                 
                 if (data.type === 'join') {
-                    // Create peer player at dynamic coordinate
-                    const rX = 100 + Math.random() * (ARENA_WIDTH - 200);
-                    const rY = 100 + Math.random() * 200;
+                    // Create peer player at dynamic coordinate in larger arena
+                    const rX = 200 + Math.random() * (ARENA_WIDTH - 400);
+                    const rY = 100 + Math.random() * 300;
                     const rColor = COLOR_LIST[Math.floor(Math.random() * COLOR_LIST.length)];
                     
                     players[connId] = new Player(connId, data.name, rX, rY, rColor);
@@ -779,9 +797,32 @@
                 }, 100);
             }
         }
+        window.kickPlayer = kickPlayer;
+
+        // Toggle OP State
+        function toggleOPPlayer(id) {
+            if (!isHost) return;
+            const p = players[id];
+            if (p) {
+                p.isOP = !p.isOP;
+                if (p.isOP) {
+                    p.maxHp = 1000;
+                    p.hp = p.maxHp;
+                    p.grenadeCooldown = 0;
+                    sfx.playPickup();
+                    createSparkles(p.x + 15, p.y + 20, '#fbbf24', 25);
+                } else {
+                    p.maxHp = 1000;
+                    if (p.level >= 5) p.maxHp = 1500;
+                    p.hp = Math.min(p.hp, p.maxHp);
+                    sfx.playHit();
+                }
+                updateUILeaderboard();
+            }
+        }
+        window.toggleOPPlayer = toggleOPPlayer;
 
         function broadcastSystemMessage(msg) {
-            // Send visual messages down line or feed game logs
             console.log(`[ARENA BROADCAST]: ${msg}`);
         }
 
@@ -789,6 +830,7 @@
         // CLIENT-SPECIFIC CONNECTIONS
         // -------------------------------------------------------------
         function onClientOpened(name) {
+            statusIndicator.className = "w-2.5 h-2.5 rounded-full bg-yellow-500 animate-pulse";
             statusText.innerText = "Connecting Client...";
             statusText.className = "text-yellow-400";
 
@@ -797,6 +839,7 @@
             
             conn.on('open', () => {
                 connections[hostId] = conn;
+                statusIndicator.className = "w-2.5 h-2.5 rounded-full bg-blue-500";
                 statusText.innerText = "Connected";
                 statusText.className = "text-blue-400 font-bold";
                 activeRoleText.innerText = "Mode: Client Warrior";
@@ -893,7 +936,7 @@
                 player.jumpPressedLast = false;
             }
 
-            // Ground slam / pound Downward action (Unlocked at level 3, 250 XP)
+            // Ground slam / pound Downward action (Unlocked at level 3)
             if (inKeys.down && !player.onGround && player.level >= 3) {
                 if (!player.isSlamming) {
                     player.isSlamming = true;
@@ -908,7 +951,7 @@
                 createSparkles(player.x + 15, player.y + 20, player.color, 2);
             }
 
-            // Directional Double-Tap Air Dashes (Level 2+, 100 XP)
+            // Directional Double-Tap Air Dashes (Level 2+)
             if (inKeys.dashDir !== 0 && player.dashCooldown <= 0 && player.level >= 2) {
                 player.vx = inKeys.dashDir * 16;
                 player.vy = -1.5; // Slight vertical float during dash
@@ -920,19 +963,30 @@
             }
 
             // Track shooting actions (only if not currently invincible)
-            if (inKeys.shoot && !player.getIsInvincible()) {
+            if (inKeys.shoot && (!player.getIsInvincible() || player.isOP)) {
                 if (!player.shootPressedLast) {
-                    // Spawn bullet centered on player shooting towards mouse coordinates
                     const playerCenterX = player.x + player.width / 2;
                     const playerCenterY = player.y + player.height / 2;
                     const dx = inKeys.mouseX - playerCenterX;
                     const dy = inKeys.mouseY - playerCenterY;
                     const angle = Math.atan2(dy, dx);
                     
-                    const bvx = Math.cos(angle) * 14;
-                    const bvy = Math.sin(angle) * 14;
-
-                    bullets.push(new Bullet(playerCenterX, playerCenterY, bvx, bvy, player.id));
+                    if (player.isOP) {
+                        // 10 Closely Fired Scatter Shotgun blast!
+                        for (let s = 0; s < 10; s++) {
+                            const spread = -0.15 + (s / 9) * 0.3; // Angular spread
+                            const spreadAngle = angle + spread;
+                            const bvx = Math.cos(spreadAngle) * (14 + Math.random() * 3);
+                            const bvy = Math.sin(spreadAngle) * (14 + Math.random() * 3);
+                            bullets.push(new Bullet(playerCenterX, playerCenterY, bvx, bvy, player.id));
+                        }
+                    } else {
+                        // Regular pistol shot
+                        const bvx = Math.cos(angle) * 14;
+                        const bvy = Math.sin(angle) * 14;
+                        bullets.push(new Bullet(playerCenterX, playerCenterY, bvx, bvy, player.id));
+                    }
+                    
                     player.shootPressedLast = true;
                     sfx.playShoot();
                 }
@@ -940,29 +994,49 @@
                 player.shootPressedLast = false;
             }
 
-            // Track grenade release (recharges over time, 5s limit)
-            if (inKeys.grenade && !player.getIsInvincible() && player.grenadeCooldown <= 0) {
-                const playerCenterX = player.x + player.width / 2;
-                const playerCenterY = player.y + player.height / 2;
-                const dx = inKeys.mouseX - playerCenterX;
-                const dy = inKeys.mouseY - playerCenterY;
-                const angle = Math.atan2(dy, dx);
+            // Track grenade release (recharges over time, 5s limit unless OP!)
+            if (inKeys.grenade && (!player.getIsInvincible() || player.isOP)) {
+                if (player.isOP || player.grenadeCooldown <= 0) {
+                    const playerCenterX = player.x + player.width / 2;
+                    const playerCenterY = player.y + player.height / 2;
+                    const dx = inKeys.mouseX - playerCenterX;
+                    const dy = inKeys.mouseY - playerCenterY;
+                    const angle = Math.atan2(dy, dx);
 
-                const gvx = Math.cos(angle) * 10;
-                const gvy = Math.sin(angle) * 10 - 3; // Slanted arch velocity path
+                    const gvx = Math.cos(angle) * 10;
+                    const gvy = Math.sin(angle) * 10 - 3; // Slanted arch velocity path
 
-                grenades.push(new Grenade(playerCenterX, playerCenterY, gvx, gvy, player.id));
-                player.grenadeCooldown = 5 * 60; // 5 seconds recharge
-                sfx.playShoot();
+                    grenades.push(new Grenade(playerCenterX, playerCenterY, gvx, gvy, player.id));
+                    player.grenadeCooldown = player.isOP ? 0 : 5 * 60; // 0 for OP!
+                    sfx.playShoot();
+                }
             }
         }
 
         // Single master physics calculations (Executed exclusively on Host)
         function updatePhysicsStep() {
+            // Drop spawner rainfall over the larger arena layout
+            dropSpawnTimer++;
+            if (dropSpawnTimer >= 180) { // Every 3 seconds
+                dropSpawnTimer = 0;
+                if (drops.length < 25) {
+                    const dType = Math.random() < 0.7 ? 'xp' : 'hp';
+                    const dAmount = dType === 'xp' ? 25 : 150;
+                    const rx = 100 + Math.random() * (ARENA_WIDTH - 200);
+                    const ry = 50 + Math.random() * 300;
+                    drops.push(new Drop(rx, ry, dType, dAmount));
+                }
+            }
+
             // 1. Players movement & platform/boundary checks
             for (let pid in players) {
                 const p = players[pid];
                 if (p.hp <= 0) continue; // Skip updates for dead/spectating players
+
+                // Keep HP clamped to max for Godmode OP players
+                if (p.isOP) {
+                    p.hp = p.maxHp;
+                }
 
                 // Handle Invincibility countdown
                 if (p.iFrameTicks > 0) p.iFrameTicks--;
@@ -996,7 +1070,7 @@
                 for (let plat of PLATFORMS) {
                     // Check horizontal intersection boundaries
                     if (p.x + p.width > plat.x && p.x < plat.x + plat.width) {
-                        // Check downward moving collision through tops of platforms (Standard platform style logic)
+                        // Check downward moving collision through tops of platforms
                         if (p.vy >= 0 && (p.y + p.height - p.vy <= plat.y + 4) && (p.y + p.height >= plat.y)) {
                             p.y = plat.y - p.height;
                             p.vy = 0;
@@ -1047,18 +1121,23 @@
                 if (!bulletDestroyed) {
                     for (let pid in players) {
                         const target = players[pid];
-                        if (target.id === b.ownerId || target.hp <= 0 || target.getIsInvincible()) continue;
+                        if (target.id === b.ownerId || target.hp <= 0) continue;
 
                         if (b.x > target.x && b.x < target.x + target.width && b.y > target.y && b.y < target.y + target.height) {
-                            // Inflict damage
-                            target.hp -= 75; // Standard Pistol high damage
                             bulletDestroyed = true;
-                            createSparkles(b.x, b.y, '#f43f5e', 8);
-                            sfx.playHit();
 
-                            // Validate kill
-                            if (target.hp <= 0) {
-                                handlePlayerElimination(target, b.ownerId);
+                            if (target.isOP) {
+                                target.hp = target.maxHp; // Complete godmode!
+                                createSparkles(b.x, b.y, '#fbbf24', 8); // Golden sparks on impact
+                            } else if (!target.getIsInvincible()) {
+                                target.hp -= 75; // Standard Pistol damage
+                                createSparkles(b.x, b.y, '#f43f5e', 8);
+                                sfx.playHit();
+
+                                // Validate kill
+                                if (target.hp <= 0) {
+                                    handlePlayerElimination(target, b.ownerId);
+                                }
                             }
                             break;
                         }
@@ -1088,7 +1167,7 @@
                 // Check immediate contact with other players
                 for (let pid in players) {
                     const target = players[pid];
-                    if (target.id === g.ownerId || target.hp <= 0 || target.getIsInvincible()) continue;
+                    if (target.id === g.ownerId || target.hp <= 0) continue;
 
                     // Direct impact triggers immediate explosion
                     const distSq = Math.pow(g.x - (target.x + 15), 2) + Math.pow(g.y - (target.y + 21), 2);
@@ -1163,7 +1242,11 @@
                     if (dist < 32) {
                         pickedUp = true;
                         if (d.type === 'hp') {
-                            target.hp = Math.min(target.maxHp, target.hp + d.amount);
+                            if (target.isOP) {
+                                target.hp = target.maxHp;
+                            } else {
+                                target.hp = Math.min(target.maxHp, target.hp + d.amount);
+                            }
                         } else if (d.type === 'xp') {
                             target.xp += d.amount;
                             evaluatePlayerUpgrades(target);
@@ -1208,20 +1291,26 @@
             // Damage detection
             for (let pid in players) {
                 const target = players[pid];
-                if (target.id === p.id || target.hp <= 0 || target.getIsInvincible()) continue;
+                if (target.id === p.id || target.hp <= 0) continue;
 
                 const distance = Math.hypot((p.x + 15) - (target.x + 15), (p.y + 42) - (target.y + 21));
                 if (distance < slamRadius) {
-                    // Linearly scale damage based on proximity
-                    const pct = (slamRadius - distance) / slamRadius;
-                    const finalDamage = Math.round(pct * maxSlamDamage);
-                    target.hp -= finalDamage;
+                    if (target.isOP) {
+                        target.hp = target.maxHp;
+                        continue;
+                    }
 
-                    createSparkles(target.x + 15, target.y + 20, '#ffffff', 10);
-                    sfx.playHit();
+                    if (!target.getIsInvincible()) {
+                        const pct = (slamRadius - distance) / slamRadius;
+                        const finalDamage = Math.round(pct * maxSlamDamage);
+                        target.hp -= finalDamage;
 
-                    if (target.hp <= 0) {
-                        handlePlayerElimination(target, p.id);
+                        createSparkles(target.x + 15, target.y + 20, '#ffffff', 10);
+                        sfx.playHit();
+
+                        if (target.hp <= 0) {
+                            handlePlayerElimination(target, p.id);
+                        }
                     }
                 }
             }
@@ -1240,19 +1329,26 @@
             // Splash damage calculations
             for (let pid in players) {
                 const target = players[pid];
-                if (target.hp <= 0 || target.getIsInvincible()) continue;
+                if (target.hp <= 0) continue;
 
                 const distance = Math.hypot(g.x - (target.x + 15), g.y - (target.y + 21));
                 if (distance < blastRadius) {
-                    const pct = (blastRadius - distance) / blastRadius;
-                    const finalDamage = Math.round(pct * maxExplosionDamage);
-                    target.hp -= finalDamage;
+                    if (target.isOP) {
+                        target.hp = target.maxHp;
+                        continue;
+                    }
 
-                    createSparkles(target.x + 15, target.y + 20, '#ec4899', 12);
-                    sfx.playHit();
+                    if (!target.getIsInvincible()) {
+                        const pct = (blastRadius - distance) / blastRadius;
+                        const finalDamage = Math.round(pct * maxExplosionDamage);
+                        target.hp -= finalDamage;
 
-                    if (target.hp <= 0) {
-                        handlePlayerElimination(target, g.ownerId);
+                        createSparkles(target.x + 15, target.y + 20, '#ec4899', 12);
+                        sfx.playHit();
+
+                        if (target.hp <= 0) {
+                            handlePlayerElimination(target, g.ownerId);
+                        }
                     }
                 }
             }
@@ -1264,7 +1360,7 @@
 
             if (p.xp >= 1000) {
                 p.level = 5;
-                p.maxHp = 1500; // Unlock Max HP Boost
+                p.maxHp = p.isOP ? 1000 : 1500; // Unlock Max HP Boost
             } else if (p.xp >= 500) {
                 p.level = 4;
                 p.maxHp = 1000;
@@ -1358,6 +1454,8 @@
             const localHostPlayer = players['host'];
             if (localHostPlayer && localHostPlayer.hp > 0) {
                 applyPlayerInputs(localHostPlayer, inputs);
+                // Reset host-side single-frame triggers
+                inputs.dashDir = 0;
             }
 
             // Perform central physics and simulation updates
@@ -1396,7 +1494,8 @@
                     iFrameTicks: p.iFrameTicks,
                     dashTimer: p.dashTimer,
                     dashDir: p.dashDir,
-                    grenadeCooldown: p.grenadeCooldown
+                    grenadeCooldown: p.grenadeCooldown,
+                    isOP: p.isOP
                 };
             }
 
@@ -1435,16 +1534,44 @@
             requestAnimationFrame(clientRenderLoop);
         }
 
+        // Dynamic Lerping Camera Positioning
+        function updateCamera() {
+            const localMe = isHost ? players['host'] : players[myId];
+            if (localMe && localMe.hp > 0) {
+                const targetCamX = localMe.x - 960 / 2 + localMe.width / 2;
+                const targetCamY = localMe.y - 600 / 2 + localMe.height / 2;
+                
+                // Linear interpolation (lerp) for cinematic smooth scroll
+                camera.x += (targetCamX - camera.x) * 0.1;
+                camera.y += (targetCamY - camera.y) * 0.1;
+            }
+            
+            // Constrain camera boundary box within enlarged arena layout
+            camera.x = Math.max(0, Math.min(camera.x, ARENA_WIDTH - 960));
+            camera.y = Math.max(0, Math.min(camera.y, ARENA_HEIGHT - 600));
+
+            // Map absolute client cursor positions utilizing screen translation offsets
+            inputs.mouseX = (inputs.rawMouseX || 0) + camera.x;
+            inputs.mouseY = (inputs.rawMouseY || 0) + camera.y;
+        }
+
         // -------------------------------------------------------------
         // VISUAL CANVAS RENDERING (Shared across Host/Client views)
         // -------------------------------------------------------------
         function renderFrame() {
-            // Draw clean dark backdrop
-            ctx.fillStyle = '#0b0c10';
-            ctx.fillRect(0, 0, ARENA_WIDTH, ARENA_HEIGHT);
+            // Update Camera alignment metrics
+            updateCamera();
 
-            // Draw abstract grid decor lines
-            ctx.strokeStyle = '#1f2937';
+            // Draw clean dark backdrop (Screen space)
+            ctx.fillStyle = '#0b0c10';
+            ctx.fillRect(0, 0, 960, 600);
+
+            // Shift context coordinate plane by camera viewport offsets
+            ctx.save();
+            ctx.translate(-camera.x, -camera.y);
+
+            // Draw abstract grid decor lines (Rendered in World space!)
+            ctx.strokeStyle = '#15161c';
             ctx.lineWidth = 1;
             const gridSize = 40;
             for (let x = 0; x < ARENA_WIDTH; x += gridSize) {
@@ -1483,7 +1610,6 @@
                 ctx.shadowBlur = 10;
                 
                 if (d.type === 'hp') {
-                    // Draw green glowing heart outline
                     ctx.fillStyle = '#10b981';
                     ctx.shadowColor = '#10b981';
                     ctx.beginPath();
@@ -1495,7 +1621,6 @@
                     ctx.fillRect(d.x + 6, d.y + 3, 4, 10);
                     ctx.fillRect(d.x + 3, d.y + 6, 10, 4);
                 } else if (d.type === 'xp') {
-                    // Draw glowing gold diamond / XP star
                     ctx.fillStyle = '#fbbf24';
                     ctx.shadowColor = '#fbbf24';
                     ctx.beginPath();
@@ -1545,7 +1670,7 @@
                 ctx.arc(g.x, g.y, g.radius, 0, Math.PI * 2);
                 ctx.fill();
 
-                // Simple white ticking dot indicator
+                // White ticking indicator dot
                 ctx.fillStyle = '#ffffff';
                 ctx.beginPath();
                 ctx.arc(g.x, g.y, 2, 0, Math.PI * 2);
@@ -1602,13 +1727,22 @@
                     ctx.strokeRect(p.x - 4, p.y - 4, p.width + 8, p.height + 8);
                 }
 
+                // Add glowing celestial crown aura for OP status
+                if (p.isOP) {
+                    ctx.strokeStyle = '#fbbf24';
+                    ctx.lineWidth = 3;
+                    ctx.shadowBlur = 20;
+                    ctx.shadowColor = '#fbbf24';
+                    ctx.strokeRect(p.x - 5, p.y - 5, p.width + 10, p.height + 10);
+                }
+
                 ctx.restore();
 
                 // Draw Player nameplate tags
                 ctx.fillStyle = '#ffffff';
-                ctx.font = 'bold 12px "Orbitron"';
+                ctx.font = 'bold 11px "Orbitron"';
                 ctx.textAlign = 'center';
-                ctx.fillText(p.name, p.x + p.width / 2, p.y - 18);
+                ctx.fillText((p.isOP ? '👑 ' : '') + p.name, p.x + p.width / 2, p.y - 18);
 
                 // Draw tiny HP progress bars above names
                 const barW = 40;
@@ -1620,6 +1754,9 @@
                 ctx.fillStyle = pct > 0.35 ? '#10b981' : '#ef4444';
                 ctx.fillRect(p.x + p.width / 2 - barW / 2, p.y - 12, barW * pct, barH);
             }
+
+            // Restore canvas translations to prevent UI displacements
+            ctx.restore();
         }
 
         // -------------------------------------------------------------
@@ -1650,20 +1787,21 @@
         }
 
         function performArenaRespawn() {
-            const rx = 100 + Math.random() * (ARENA_WIDTH - 200);
-            const ry = 100 + Math.random() * 200;
+            const rx = 200 + Math.random() * (ARENA_WIDTH - 400);
+            const ry = 100 + Math.random() * 300;
 
             if (isHost) {
                 // Instantly spawn local host entity back into game array
-                players['host'].x = rx;
-                players['host'].y = ry;
-                players['host'].vx = 0;
-                players['host'].vy = 0;
-                players['host'].hp = 1000;
-                players['host'].xp = 0;
-                players['host'].level = 1;
-                players['host'].maxHp = 1000;
-                players['host'].iFrameTicks = IFRAME_TIME * 60; // 2 seconds iFrames
+                const h = players['host'];
+                h.x = rx;
+                h.y = ry;
+                h.vx = 0;
+                h.vy = 0;
+                h.hp = h.isOP ? 1000 : 1000;
+                h.xp = 0;
+                h.level = 1;
+                h.maxHp = 1000;
+                h.iFrameTicks = IFRAME_TIME * 60; // 2 seconds iFrames
                 
                 sfx.playPickup();
                 updateUILeaderboard();
@@ -1690,6 +1828,7 @@
 
         function resetToMenu() {
             // Re-render clear status
+            statusIndicator.className = "w-2.5 h-2.5 rounded-full bg-red-500 animate-ping";
             statusText.innerText = "Disconnected";
             statusText.className = "text-gray-400";
             activeRoleText.innerText = "Mode: Idle";
@@ -1715,24 +1854,34 @@
             playerCount.innerText = arr.length;
 
             arr.forEach((p, idx) => {
-                const isMe = p.id === 'host' && isHost;
+                const isMe = (p.id === 'host' && isHost) || (p.id === myId);
                 const row = document.createElement('div');
-                row.className = "flex items-center justify-between p-2 rounded-lg bg-gray-950/80 border border-gray-800";
+                row.className = "flex flex-col gap-1 p-2 rounded-lg bg-gray-950/80 border border-gray-800 hover:border-gray-700 transition";
                 
+                const opBadge = p.isOP ? `<span class="bg-amber-500/20 text-amber-400 text-[9px] font-black uppercase px-1.5 py-0.5 rounded border border-amber-500/30 animate-pulse flex items-center gap-1">👑 OP</span>` : '';
+
                 row.innerHTML = `
-                    <div class="flex items-center gap-2 overflow-hidden">
-                        <span class="w-2.5 h-2.5 rounded-full" style="background-color: ${p.color}"></span>
-                        <span class="font-bold truncate text-sm ${isMe ? 'text-amber-400' : 'text-white'}">${p.name}</span>
-                        <span class="text-[10px] text-gray-500 uppercase">Lv.${p.level}</span>
+                    <div class="flex items-center justify-between overflow-hidden">
+                        <div class="flex items-center gap-2 overflow-hidden">
+                            <span class="w-2.5 h-2.5 rounded-full shrink-0" style="background-color: ${p.color}"></span>
+                            <span class="font-bold truncate text-sm ${isMe ? 'text-amber-400' : 'text-white'}">${p.name}</span>
+                            <span class="text-[10px] text-gray-500 uppercase shrink-0">Lv.${p.level}</span>
+                            ${opBadge}
+                        </div>
+                        <span class="orbitron text-xs text-emerald-400 font-bold shrink-0">${p.xp} XP</span>
                     </div>
-                    <div class="flex items-center gap-3">
-                        <span class="orbitron text-xs text-emerald-400 font-bold">${p.xp} XP</span>
-                        ${isHost && p.id !== 'host' ? `
-                            <button onclick="kickPlayer('${p.id}')" class="bg-red-950 hover:bg-red-800 border border-red-500/40 text-red-400 text-[10px] font-bold uppercase px-2 py-0.5 rounded transition">
+                    ${isHost ? `
+                    <div class="flex items-center justify-end gap-2 mt-1.5 pt-1.5 border-t border-gray-900">
+                        <button onclick="toggleOPPlayer('${p.id}')" class="px-2 py-0.5 text-[10px] font-extrabold uppercase rounded border transition ${p.isOP ? 'bg-amber-500 hover:bg-amber-400 text-black border-amber-300 font-black' : 'bg-gray-800 hover:bg-gray-700 text-gray-400 border-gray-700'}">
+                            ${p.isOP ? '⚡ OP: ACTIVE' : '⚡ MAKE OP'}
+                        </button>
+                        ${p.id !== 'host' ? `
+                            <button onclick="kickPlayer('${p.id}')" class="bg-red-950/80 hover:bg-red-900/90 border border-red-500/40 text-red-400 text-[10px] font-bold uppercase px-2 py-0.5 rounded transition">
                                 Kick
                             </button>
                         ` : ''}
                     </div>
+                    ` : ''}
                 `;
                 playerList.appendChild(row);
             });
@@ -1753,6 +1902,15 @@
                 hudHpBar.className = "h-full bg-gradient-to-r from-red-600 to-red-400 rounded-full animate-pulse";
             } else {
                 hudHpBar.className = "h-full bg-gradient-to-r from-emerald-600 to-emerald-400 rounded-full";
+            }
+
+            // Weapon text updates
+            if (player.isOP) {
+                hudWeaponText.innerText = "💥 10-SHOT SCATTER BLAST";
+                hudWeaponText.className = "orbitron text-amber-400 font-black text-sm animate-pulse";
+            } else {
+                hudWeaponText.innerText = "⚔️ UNLIMITED PISTOL";
+                hudWeaponText.className = "orbitron text-emerald-400 font-bold text-sm";
             }
 
             // XP bar progression locks
@@ -1779,7 +1937,7 @@
             hudXpBar.style.width = `${xpPct}%`;
 
             // Rechargeable grenade status
-            if (player.grenadeCooldown <= 0) {
+            if (player.isOP || player.grenadeCooldown <= 0) {
                 hudGrenadeIcon.className = "w-6 h-6 rounded-full bg-emerald-500/20 border border-emerald-500 flex items-center justify-center text-xs text-emerald-400 font-black animate-pulse";
                 hudGrenadeText.innerText = "READY";
                 hudGrenadeText.className = "orbitron text-xs font-bold text-emerald-400";
@@ -1824,11 +1982,12 @@
         }, { passive: false });
 
         window.addEventListener('keydown', (e) => {
+            if (e.repeat) return; // Prevent browser key-repeat from spamming dashes/jumps
             const code = e.code;
             if (code === 'KeyA' || code === 'ArrowLeft') {
                 inputs.left = true;
                 
-                // Directional Dash detect
+                // Directional Double-Tap Dash detection
                 const now = Date.now();
                 if (now - lastLeftPressTime < 250) {
                     inputs.dashDir = -1; // Dash left command
@@ -1838,7 +1997,7 @@
             if (code === 'KeyD' || code === 'ArrowRight') {
                 inputs.right = true;
 
-                // Directional Dash detect
+                // Directional Double-Tap Dash detection
                 const now = Date.now();
                 if (now - lastRightPressTime < 250) {
                     inputs.dashDir = 1; // Dash right command
@@ -1875,11 +2034,11 @@
             }
         });
 
-        // Track local canvas mouse aiming lines
+        // Track local canvas mouse aiming lines in raw screen space
         gameCanvas.addEventListener('mousemove', (e) => {
             const rect = gameCanvas.getBoundingClientRect();
-            inputs.mouseX = ((e.clientX - rect.left) / rect.width) * ARENA_WIDTH;
-            inputs.mouseY = ((e.clientY - rect.top) / rect.height) * ARENA_HEIGHT;
+            inputs.rawMouseX = ((e.clientX - rect.left) / rect.width) * 960;
+            inputs.rawMouseY = ((e.clientY - rect.top) / rect.height) * 600;
         });
 
         gameCanvas.addEventListener('mousedown', (e) => {
