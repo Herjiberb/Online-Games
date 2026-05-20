@@ -1,1908 +1,1021 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Neon Showdown - Multiplayer Arena</title>
-    <!-- Tailwind CSS for modern cyber-punk UI styling -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- PeerJS for seamless WebRTC matchmaking -->
-    <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@500;700&display=swap');
-        
-        body {
-            font-family: 'Rajdhani', sans-serif;
-            background-color: #0b0c10;
-            overflow: hidden;
-            user-select: none;
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Homework Radio Station & Study Lounge</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- PeerJS for seamless WebRTC P2P communication -->
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Plus Jakarta Sans', 'sans-serif'],
+            display: ['Space Grotesk', 'sans-serif'],
+          }
         }
-        
-        .orbitron {
-            font-family: 'Orbitron', sans-serif;
-        }
-
-        /* Custom Scrollbar for Lobby List */
-        ::-webkit-scrollbar {
-            width: 6px;
-        }
-        ::-webkit-scrollbar-track {
-            background: rgba(31, 41, 55, 0.5);
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #10b981;
-            border-radius: 3px;
-        }
-
-        /* Neon Glows */
-        .neon-border-green {
-            box-shadow: 0 0 15px rgba(16, 185, 129, 0.4);
-            border: 2px solid #10b981;
-        }
-        .neon-border-blue {
-            box-shadow: 0 0 15px rgba(59, 130, 246, 0.4);
-            border: 2px solid #3b82f6;
-        }
-        .neon-border-pink {
-            box-shadow: 0 0 15px rgba(236, 72, 153, 0.4);
-            border: 2px solid #ec4899;
-        }
-        .neon-text-pink {
-            text-shadow: 0 0 10px rgba(236, 72, 153, 0.6);
-        }
-    </style>
+      }
+    }
+  </script>
+  <style>
+    body {
+      background: radial-gradient(circle at top right, #111827 0%, #030712 100%);
+    }
+    .lofi-glow {
+      box-shadow: 0 0 20px rgba(244, 63, 94, 0.15);
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #374151;
+      border-radius: 10px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+      background: #4b5563;
+    }
+  </style>
 </head>
-<body class="text-white relative h-screen w-screen flex flex-col justify-between">
+<body class="text-slate-100 min-h-screen flex flex-col justify-between font-sans selection:bg-rose-500/30 selection:text-rose-200">
 
-    <!-- TOP DECORATION HEADER -->
-    <header class="p-4 bg-gray-900 border-b border-gray-800 flex justify-between items-center z-10">
-        <h1 class="orbitron text-2xl font-black tracking-widest text-emerald-400 flex items-center gap-2">
-            <span class="animate-pulse">⚡</span> NEON SHOWDOWN
-        </h1>
-        <div id="connectionStatus" class="flex items-center gap-2 text-sm bg-gray-800 px-3 py-1.5 rounded-full border border-gray-700">
-            <span class="w-2.5 h-2.5 rounded-full bg-red-500 animate-ping"></span>
-            <span class="text-gray-400" id="statusText">Disconnected</span>
+  <!-- Header Banner -->
+  <header class="border-b border-slate-800/80 bg-slate-950/60 backdrop-blur-md sticky top-0 z-40 transition-all">
+    <div class="max-w-6xl mx-auto px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <div class="w-11 h-11 rounded-2xl bg-gradient-to-tr from-rose-500 to-amber-500 flex items-center justify-center shadow-lg shadow-rose-500/20">
+          <svg class="w-6 h-6 text-slate-950" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 9l10.5-3m0 0L21 8.25M19.5 6v12m-3-12v12M9 9h10.5M9 9V18c0 .828-.672 1.5-1.5 1.5s-1.5-.672-1.5-1.5 1.5-1.5 1.5-1.5H9m0-9L3 11.25M3 11.25L4.5 13.5M3 11.25V18c0 .828.672 1.5 1.5 1.5s1.5-.672 1.5-1.5S5.328 15 4.5 15H3" />
+          </svg>
         </div>
-    </header>
+        <div>
+          <h1 class="text-xl font-bold font-display tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-rose-200 via-amber-200 to-amber-100">Homework Radio</h1>
+          <p class="text-xs text-slate-400">P2P Study Room & Real-time Live Audio Streamer</p>
+        </div>
+      </div>
 
-    <!-- MAIN MENU LAYER -->
-    <div id="mainMenu" class="flex-1 flex flex-col items-center justify-center p-6 z-10">
-        <div class="max-w-4xl w-full grid grid-cols-1 md:grid-cols-2 gap-8">
-            <!-- HOST CARD -->
-            <div class="bg-gray-900/90 border border-emerald-500/30 rounded-2xl p-8 flex flex-col justify-between hover:border-emerald-500/80 transition-all duration-300 transform hover:-translate-y-1 bg-gradient-to-br from-gray-900 via-gray-900 to-emerald-950/20 shadow-2xl">
-                <div>
-                    <span class="orbitron text-xs font-bold text-emerald-400 tracking-wider uppercase bg-emerald-950/50 px-3 py-1 rounded-full border border-emerald-500/20">AUTHORITATIVE SERVER</span>
-                    <h2 class="orbitron text-3xl font-bold mt-4 mb-2 text-white">HOST ARENA</h2>
-                    <p class="text-gray-400 text-sm leading-relaxed mb-6">
-                        Spin up a physics-authoritative server right on your device. You can play directly as a player, control the rules, view system performance, and kick rulebreakers instantly.
-                    </p>
-                    <div class="space-y-3 mb-6">
-                        <label class="block text-xs font-semibold uppercase tracking-wider text-gray-400">Your Nickname</label>
-                        <input type="text" id="hostName" placeholder="EliteHost" maxlength="15" class="w-full bg-gray-950 border border-gray-800 rounded-lg py-2.5 px-4 focus:outline-none focus:border-emerald-500 text-white transition-all">
-                    </div>
-                </div>
-                <button id="btnHost" class="w-full bg-emerald-600 hover:bg-emerald-500 text-black font-extrabold orbitron tracking-wider py-4 rounded-xl shadow-lg shadow-emerald-900/40 transform active:scale-95 transition-all">
-                    GENERATE SECURE ROOM
-                </button>
+      <!-- Quick Room Code / Connection Info -->
+      <div class="flex items-center gap-3">
+        <div id="connectionIndicator" class="flex items-center gap-2 bg-slate-900 px-3 py-1.5 rounded-full border border-slate-800 text-xs">
+          <span class="w-2.5 h-2.5 rounded-full bg-slate-500" id="indicatorDot"></span>
+          <span id="indicatorText" class="text-slate-400">Offline</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Workspaces -->
+  <main class="max-w-6xl mx-auto px-4 py-6 flex-grow w-full grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+    
+    <!-- Left Hand Side: Controls, Host Setup, and Stream Stats (5 Cols) -->
+    <div class="lg:col-span-5 flex flex-col gap-6 w-full">
+      
+      <!-- Welcome Card -->
+      <div class="bg-gradient-to-br from-slate-900/90 to-slate-950/90 border border-slate-800 rounded-2xl p-6 relative overflow-hidden">
+        <div class="absolute top-0 right-0 w-32 h-32 bg-rose-500/5 rounded-full blur-3xl pointer-events-none"></div>
+        <h2 class="text-lg font-bold font-display text-rose-300 mb-2">Welcome to Study Lounge! ☕</h2>
+        <p class="text-xs text-slate-300 leading-relaxed">
+          Create your own broadcast channel to play study jams, lo-fi tracks, or host a focus session. Or, simply tune in to another room to chat with peers, choose a cool avatar color, and listen together!
+        </p>
+      </div>
+
+      <!-- Station Control Hub -->
+      <div class="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-6 backdrop-blur-md">
+        <h3 class="text-sm font-bold font-display uppercase tracking-wider text-slate-400 mb-4 flex items-center gap-2">
+          <span class="w-2 h-2 rounded-full bg-rose-500"></span> Station Deck
+        </h3>
+
+        <!-- Initial Mode Selection Tabs -->
+        <div id="deckSelectionArea" class="space-y-4">
+          <div class="grid grid-cols-2 gap-2 p-1 bg-slate-950 rounded-xl border border-slate-800/80">
+            <button id="tabTuneIn" class="py-2.5 text-sm font-semibold rounded-lg transition-all text-rose-400 bg-slate-900 border border-slate-800">
+              🎵 Tune In
+            </button>
+            <button id="tabHost" class="py-2.5 text-sm font-semibold rounded-lg transition-all text-slate-400 hover:text-slate-200">
+              🎙️ Host Radio
+            </button>
+          </div>
+
+          <!-- Tune-In Form -->
+          <div id="tuneInForm" class="space-y-4 pt-2">
+            <div>
+              <label class="block text-xs font-semibold text-slate-400 mb-1.5">Your Nickname</label>
+              <input type="text" id="listenerName" placeholder="StudyBuddy" maxlength="15" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:border-rose-500 transition-colors">
             </div>
 
-            <!-- JOIN CARD -->
-            <div class="bg-gray-900/90 border border-blue-500/30 rounded-2xl p-8 flex flex-col justify-between hover:border-blue-500/80 transition-all duration-300 transform hover:-translate-y-1 bg-gradient-to-br from-gray-900 via-gray-900 to-blue-950/20 shadow-2xl">
-                <div>
-                    <span class="orbitron text-xs font-bold text-blue-400 tracking-wider uppercase bg-blue-950/50 px-3 py-1 rounded-full border border-blue-500/20">FAST PEER-TO-PEER</span>
-                    <h2 class="orbitron text-3xl font-bold mt-4 mb-2 text-white">JOIN ARENA</h2>
-                    <p class="text-gray-400 text-sm leading-relaxed mb-6">
-                        Connect directly to a hosted arena. Enjoy high-speed double jumps, directional air-dashes, grenade-recharges, and explosive combat without hosting lag.
-                    </p>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-                        <div class="space-y-1.5">
-                            <label class="block text-xs font-semibold uppercase tracking-wider text-gray-400">Your Nickname</label>
-                            <input type="text" id="clientName" placeholder="CyberWarrior" maxlength="15" class="w-full bg-gray-950 border border-gray-800 rounded-lg py-2.5 px-4 focus:outline-none focus:border-blue-500 text-white transition-all">
-                        </div>
-                        <div class="space-y-1.5">
-                            <label class="block text-xs font-semibold uppercase tracking-wider text-gray-400">Arena Room Code</label>
-                            <input type="text" id="joinRoomCode" placeholder="Enter Code" class="w-full bg-gray-950 border border-gray-800 rounded-lg py-2.5 px-4 focus:outline-none focus:border-blue-500 uppercase font-mono tracking-widest text-center text-blue-400 transition-all">
-                        </div>
-                    </div>
-                </div>
-                <button id="btnJoin" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-extrabold orbitron tracking-wider py-4 rounded-xl shadow-lg shadow-blue-900/40 transform active:scale-95 transition-all">
-                    CONNECT TO ARENA
-                </button>
+            <div>
+              <label class="block text-xs font-semibold text-slate-400 mb-1.5">Avatar Base Color</label>
+              <div class="flex items-center gap-2.5">
+                <input type="color" id="avatarColor" value="#f43f5e" class="w-10 h-10 rounded-xl border-0 bg-transparent cursor-pointer">
+                <span class="text-xs text-slate-400">Click to pick your signature chat shade</span>
+              </div>
             </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-slate-400 mb-1.5">Station Room Code</label>
+              <input type="text" id="listenerRoom" value="study-lounge" placeholder="e.g. study-lounge" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:border-rose-500 transition-colors font-mono">
+            </div>
+
+            <button id="btnStartListening" class="w-full py-3 bg-gradient-to-r from-rose-500 to-amber-500 hover:from-rose-400 hover:to-amber-400 text-slate-950 font-bold rounded-xl transition-all shadow-md active:scale-98 flex items-center justify-center gap-2">
+              <svg class="w-4 h-4 stroke-[2.5]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19.114 5.636a9 9 0 0 1 0 12.728M16.463 8.288a5.25 5.25 0 0 1 0 7.424M6.75 8.25l4.72-4.72a.75.75 0 0 1 1.28.53v15.88a.75.75 0 0 1-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.009 9.009 0 0 1 2.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75Z" />
+              </svg>
+              Join Station
+            </button>
+          </div>
+
+          <!-- Host-Station Form -->
+          <div id="hostForm" class="space-y-4 pt-2 hidden">
+            <div class="bg-amber-500/10 border border-amber-500/20 rounded-xl p-3 text-xs text-amber-200 leading-relaxed mb-1">
+              <strong>🎙️ Broadcaster Notice:</strong> Streaming requires you to share a tab/window with audio enabled so PeerJS can loop your feed directly to students.
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-slate-400 mb-1.5">Broadcaster Password</label>
+              <input type="password" id="hostPassword" placeholder="Enter Host Password" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:border-rose-500 transition-colors">
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-slate-400 mb-1.5">Station Room Code</label>
+              <input type="text" id="hostRoom" value="study-lounge" placeholder="e.g. study-lounge" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:border-rose-500 transition-colors font-mono">
+            </div>
+
+            <button id="btnStartHosting" class="w-full py-3 bg-gradient-to-r from-amber-500 to-rose-500 hover:from-amber-400 hover:to-rose-400 text-slate-950 font-bold rounded-xl transition-all shadow-md active:scale-98 flex items-center justify-center gap-2">
+              <svg class="w-4 h-4 stroke-[2.5]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 18.75a6 6 0 0 0 6-6v-1.5m-6 7.5a6 6 0 0 1-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 0 1-3-3V4.5a3 3 0 1 1 6 0v8.25a3 3 0 0 1-3 3Z" />
+              </svg>
+              Go Live & Share Sound
+            </button>
+          </div>
         </div>
+
+        <!-- Active Mode Dashboard UI (Hidden until linked) -->
+        <div id="activeDashboard" class="hidden space-y-4">
+          <!-- Active Status Badge -->
+          <div class="p-4 bg-slate-950 rounded-2xl border border-slate-800 flex items-center justify-between">
+            <div>
+              <span class="text-[10px] font-bold text-rose-400 uppercase tracking-wider" id="activeLabel">Broadcasting</span>
+              <h4 class="font-display font-semibold text-sm" id="activeRoomName">study-lounge</h4>
+            </div>
+            <button id="btnLeaveSession" class="text-xs px-3 py-1.5 bg-rose-500/10 border border-rose-500/20 text-rose-400 font-semibold hover:bg-rose-500/20 rounded-lg transition-all">
+              Disconnect
+            </button>
+          </div>
+
+          <!-- Audio Stream Output Control / Visualizer -->
+          <div id="receiverPlayerBlock" class="p-4 bg-slate-950/60 border border-slate-800 rounded-2xl hidden">
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-[10px] font-mono text-slate-400">Stream Playback</span>
+              <div class="flex items-center gap-1.5">
+                <span class="w-2 h-2 rounded-full bg-rose-500 animate-ping"></span>
+                <span class="text-[10px] text-rose-400 uppercase font-semibold">Tuned In</span>
+              </div>
+            </div>
+            
+            <div class="flex items-center gap-3">
+              <div class="w-9 h-9 rounded-lg bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400">
+                <svg class="w-5 h-5 animate-bounce" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M19.114 5.636a9 9 0 0 1 0 12.728M16.463 8.288a5.25 5.25 0 0 1 0 7.424M6.75 8.25l4.72-4.72a.75.75 0 0 1 1.28.53v15.88a.75.75 0 0 1-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.009 9.009 0 0 1 2.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75Z" />
+                </svg>
+              </div>
+              <div class="flex-grow">
+                <!-- Volume Control -->
+                <input type="range" id="listenerVolume" min="0" max="1" step="0.05" value="0.8" class="w-full accent-rose-500 h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer">
+              </div>
+              <span class="text-xs font-mono text-slate-400" id="volumePercentage">80%</span>
+            </div>
+          </div>
+
+          <!-- Live Frequency Spectrogram Area -->
+          <div class="relative bg-slate-950 border border-slate-800 rounded-2xl h-32 overflow-hidden">
+            <canvas id="liveVizCanvas" class="w-full h-full absolute inset-0 opacity-85"></canvas>
+            <div class="absolute bottom-2.5 left-3 text-[10px] font-mono text-slate-500 bg-slate-950/80 px-2 py-0.5 rounded border border-slate-800/60">
+              Live Spectrum Wave
+            </div>
+          </div>
+
+          <!-- Peer List & Quick Room stats -->
+          <div class="bg-slate-950/40 border border-slate-800 rounded-xl p-3.5 space-y-2">
+            <div class="flex items-center justify-between text-xs text-slate-400">
+              <span>Listeners Connected</span>
+              <span id="txtPeerCount" class="font-bold text-rose-400">0</span>
+            </div>
+            <div class="flex items-center justify-between text-xs text-slate-400">
+              <span>Radio Status</span>
+              <span id="txtStatusLabel" class="font-bold text-amber-400">Ready</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
     </div>
 
-    <!-- MAIN GAME AREA (HIDDEN BY DEFAULT) -->
-    <div id="gameScreen" class="hidden flex-1 flex flex-col md:flex-row p-4 gap-4 overflow-hidden relative">
+    <!-- Right Hand Side: Interactive Chat & Custom Lounge (7 Cols) -->
+    <div class="lg:col-span-7 flex flex-col gap-6 w-full">
+      
+      <!-- Chat Area Box -->
+      <div class="bg-slate-900/60 border border-slate-800/80 rounded-3xl p-5 backdrop-blur-md flex flex-col h-[520px] shadow-xl relative overflow-hidden">
         
-        <!-- SIDEBAR: PLAYER HUB & LEADERBOARD -->
-        <div class="w-full md:w-80 flex flex-col gap-4">
-            
-            <!-- CODE CARD -->
-            <div class="bg-gray-900 border border-gray-800 rounded-xl p-4 flex flex-col justify-center items-center relative overflow-hidden">
-                <div class="absolute top-0 left-0 w-1.5 h-full bg-emerald-500" id="roleIndicator"></div>
-                <span class="text-xs uppercase font-bold text-gray-400 tracking-widest mb-1">Room Code</span>
-                <span id="displayRoomCode" class="orbitron text-3xl font-black text-emerald-400 tracking-widest select-all pointer-events-auto cursor-pointer" title="Click to copy">------</span>
-                <span class="text-[10px] text-gray-500 mt-1">Share this code with other players</span>
+        <!-- Chat Header -->
+        <div class="flex items-center justify-between pb-3.5 border-b border-slate-800/80 mb-4">
+          <div class="flex items-center gap-2.5">
+            <div class="w-2.5 h-2.5 rounded-full bg-emerald-500" id="chatHeaderPulse"></div>
+            <div>
+              <h3 class="font-bold font-display text-sm text-slate-200" id="chatRoomHeader">Lounge Chatroom</h3>
+              <p class="text-[10px] text-slate-400" id="chatRoomSubtitle">Broadcast offline. Hangout mode active.</p>
             </div>
-
-            <!-- LEADERBOARD & PLAYERS -->
-            <div class="flex-1 bg-gray-900 border border-gray-800 rounded-xl p-4 flex flex-col min-h-[250px] overflow-hidden">
-                <h3 class="orbitron text-sm font-bold text-gray-400 tracking-wider uppercase mb-3 flex items-center justify-between">
-                    <span>Active Combatants</span>
-                    <span id="playerCount" class="bg-gray-800 text-xs text-emerald-400 px-2.5 py-0.5 rounded-full border border-gray-700">0</span>
-                </h3>
-                <div id="playerList" class="flex-1 overflow-y-auto space-y-2 pr-1">
-                    <!-- Dynamic List of Players with kick buttons if Host -->
-                </div>
-            </div>
-
-            <!-- INSTRUCTIONS / ABILITIES -->
-            <div class="bg-gray-900 border border-gray-800 rounded-xl p-4">
-                <h3 class="orbitron text-xs font-bold text-gray-400 tracking-wider uppercase mb-3">Controls</h3>
-                <div class="text-xs text-gray-400 space-y-1.5 leading-relaxed">
-                    <p><strong class="text-white">A / D / Arrows:</strong> Move Left / Right</p>
-                    <p><strong class="text-white">W / Up Arrow:</strong> Jump (Double Jump supported!)</p>
-                    <p><strong class="text-white">S / Down (Air):</strong> Ground Pound (Level 3+)</p>
-                    <p><strong class="text-white">Double Tap A/D:</strong> Air Dash (Level 2+)</p>
-                    <p><strong class="text-white">Left Click:</strong> Shoot Pistol</p>
-                    <p><strong class="text-white">Q / Right Click:</strong> Throw Grenade</p>
-                </div>
-            </div>
+          </div>
+          <span class="text-[10px] font-mono text-slate-400 bg-slate-950 px-2.5 py-1 rounded-full border border-slate-800/80" id="lobbyStatusBadge">Lounge Mode</span>
         </div>
 
-        <!-- CENTER: CANVAS ARENA -->
-        <div class="flex-1 bg-gray-950 border border-gray-800 rounded-2xl relative flex items-center justify-center p-2 min-h-[400px]">
-            <!-- Canvas container keeping aspect ratio -->
-            <div class="relative w-full max-w-[960px] aspect-[16/10] bg-black rounded-lg overflow-hidden border border-gray-900 shadow-2xl">
-                <canvas id="gameCanvas" width="960" height="600" class="w-full h-full block"></canvas>
-                
-                <!-- DEAD / RESPONDING SCREEN OVERLAY -->
-                <div id="respawnOverlay" class="hidden absolute inset-0 bg-black/90 backdrop-blur-sm flex flex-col justify-center items-center z-20">
-                    <div class="text-center p-8 max-w-md">
-                        <span class="orbitron text-xs font-bold tracking-widest text-red-500 uppercase bg-red-950/40 px-3 py-1.5 rounded-full border border-red-500/20">Wasted</span>
-                        <h2 class="orbitron text-5xl font-black text-red-600 mt-4 mb-2 tracking-wide neon-text-pink animate-pulse">YOU DIED</h2>
-                        <p class="text-gray-400 text-sm mb-6">Your XP was scattered across the floor. Reconstructing cybernetic structure...</p>
-                        
-                        <div class="relative w-24 h-24 mx-auto mb-6 flex items-center justify-center">
-                            <svg class="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
-                                <circle class="text-gray-800" stroke-width="6" stroke="currentColor" fill="transparent" r="40" cx="50" cy="50"/>
-                                <circle id="respawnCircle" class="text-red-500" stroke-width="6" stroke-dasharray="251.2" stroke-dashoffset="0" stroke-linecap="round" stroke="currentColor" fill="transparent" r="40" cx="50" cy="50"/>
-                            </svg>
-                            <span id="respawnTimeText" class="absolute orbitron text-2xl font-black text-red-500">15s</span>
-                        </div>
-                        <p class="text-[10px] text-gray-500 uppercase tracking-widest">Random spawn coordinates selected</p>
-                    </div>
-                </div>
-
-                <!-- HUD BAR -->
-                <div class="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/90 to-transparent p-4 flex flex-col sm:flex-row justify-between items-center gap-4 pointer-events-none select-none">
-                    <!-- Left: HP & Level -->
-                    <div class="flex items-center gap-4 w-full sm:w-auto">
-                        <div class="flex flex-col">
-                            <span class="orbitron text-xs text-gray-400 uppercase font-bold tracking-wider">Combat Integrity</span>
-                            <div class="flex items-center gap-2 mt-1">
-                                <div class="w-48 bg-gray-800 h-4 rounded-full overflow-hidden border border-gray-700 p-[2px]">
-                                    <div id="hudHpBar" class="h-full bg-gradient-to-r from-red-600 to-emerald-500 rounded-full transition-all duration-300" style="width: 100%"></div>
-                                </div>
-                                <span id="hudHpText" class="orbitron text-sm font-black text-emerald-400">1000/1000</span>
-                            </div>
-                        </div>
-
-                        <div class="flex flex-col bg-gray-900/80 px-4 py-1.5 rounded-lg border border-gray-800">
-                            <span class="text-[9px] uppercase font-bold tracking-widest text-gray-400">Level</span>
-                            <span id="hudLevel" class="orbitron text-2xl font-black text-amber-400 leading-none">1</span>
-                        </div>
-                    </div>
-
-                    <!-- Center: XP Lock Progression -->
-                    <div class="flex flex-col items-center flex-1 max-w-xs w-full">
-                        <span id="hudXpGoalText" class="text-[10px] uppercase font-bold tracking-widest text-amber-300">Next Unlock: Level 2 (100 XP)</span>
-                        <div class="w-full bg-gray-800 h-2 rounded-full overflow-hidden border border-gray-700 p-[1px] mt-1">
-                            <div id="hudXpBar" class="h-full bg-amber-400 rounded-full transition-all duration-300" style="width: 0%"></div>
-                        </div>
-                    </div>
-
-                    <!-- Right: Weapon & Cooldowns -->
-                    <div class="flex items-center gap-4">
-                        <div class="flex flex-col items-end">
-                            <span class="text-[10px] uppercase font-bold text-gray-400">Pistol Ammo</span>
-                            <span class="orbitron text-emerald-400 font-bold text-sm">⚔️ UNLIMITED</span>
-                        </div>
-                        <div class="w-px h-8 bg-gray-800"></div>
-                        <div class="flex flex-col items-end">
-                            <span class="text-[10px] uppercase font-bold text-gray-400">Grenade Ready</span>
-                            <div class="flex items-center gap-2 mt-0.5">
-                                <div id="hudGrenadeIcon" class="w-6 h-6 rounded-full bg-emerald-500/20 border border-emerald-500 flex items-center justify-center text-xs text-emerald-400 font-black">G</div>
-                                <span id="hudGrenadeText" class="orbitron text-xs font-bold text-emerald-400">READY</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- SPECS / ABILITIES POPUP -->
-                <div class="absolute top-4 left-4 bg-gray-900/90 border border-gray-800 px-3 py-2 rounded-lg flex flex-col gap-1 pointer-events-none text-xs">
-                    <span class="text-[9px] uppercase font-bold tracking-widest text-gray-400">Unlocked Tech</span>
-                    <div class="flex flex-col gap-1 mt-1">
-                        <span id="unlockDoubleJump" class="text-emerald-400 font-semibold flex items-center gap-1">✓ Double Jump</span>
-                        <span id="unlockDash" class="text-gray-500 flex items-center gap-1">✗ Air Dash (Lv.2)</span>
-                        <span id="unlockSlam" class="text-gray-500 flex items-center gap-1">✗ Ground Slam (Lv.3)</span>
-                        <span id="unlockHighJump" class="text-gray-500 flex items-center gap-1">✗ Boosted Jumps (Lv.4)</span>
-                        <span id="unlockMaxHp" class="text-gray-500 flex items-center gap-1">✗ Combat Core Boost (Lv.5)</span>
-                    </div>
-                </div>
+        <!-- Scrollable Messages list -->
+        <div id="chatMessages" class="flex-grow overflow-y-auto custom-scrollbar space-y-3.5 pr-2">
+          <!-- Welcome message -->
+          <div class="flex items-start gap-3 bg-slate-950/30 p-3 rounded-2xl border border-slate-800/30">
+            <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-amber-500 to-rose-500 flex items-center justify-center text-xs font-bold text-slate-950">📻</div>
+            <div class="flex-grow">
+              <div class="flex items-baseline gap-2">
+                <span class="text-xs font-bold text-rose-300">Homework Radio Desk</span>
+                <span class="text-[9px] text-slate-500">System</span>
+              </div>
+              <p class="text-xs text-slate-300 leading-relaxed mt-0.5">
+                Hey study club! This room is your digital desk. Enter a room name to join other students, select a custom chat color, and chat live while playing background audio! Keep focused and have fun! 📚
+              </p>
             </div>
+          </div>
         </div>
+
+        <!-- Chat input dock -->
+        <form id="chatForm" class="mt-4 flex gap-2.5 items-center">
+          <input type="text" id="chatInput" disabled placeholder="Join a room to send messages..." class="flex-grow bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-rose-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+          <button type="submit" id="btnSendChat" disabled class="px-5 py-3 bg-rose-500 hover:bg-rose-400 text-slate-950 font-bold text-sm rounded-xl transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed">
+            Send
+          </button>
+        </form>
+
+      </div>
+
     </div>
 
-    <!-- ERROR BANNER MODAL -->
-    <div id="toast" class="hidden fixed bottom-6 right-6 bg-red-950/90 border border-red-500 p-4 rounded-xl shadow-2xl z-50 flex items-center gap-3 transition-all">
-        <span class="text-red-400 text-xl font-bold">⚠️</span>
-        <div class="flex flex-col">
-            <span class="orbitron text-xs font-bold text-red-400 uppercase">System Error</span>
-            <span id="toastMessage" class="text-sm text-gray-300">An unexpected connection drop occurred.</span>
-        </div>
+  </main>
+
+  <!-- Global Custom Warning Modal -->
+  <div id="modalOverlay" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 flex items-center justify-center hidden p-4">
+    <div class="bg-slate-900 border border-slate-800 max-w-md w-full rounded-3xl p-6 shadow-2xl relative">
+      <div id="modalIconContainer" class="w-12 h-12 rounded-xl bg-rose-500/10 border border-rose-500/25 flex items-center justify-center text-rose-400 mb-4">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+        </svg>
+      </div>
+
+      <h3 id="modalTitle" class="text-lg font-bold font-display text-slate-100 mb-2">Error Alert</h3>
+      <p id="modalDescription" class="text-sm text-slate-400 leading-relaxed mb-6"></p>
+
+      <div class="flex items-center gap-3">
+        <button id="modalBtnClose" class="w-full py-3 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold rounded-xl transition-colors text-sm">
+          Acknowledge
+        </button>
+      </div>
     </div>
+  </div>
 
-    <footer class="p-3 bg-gray-950 border-t border-gray-900 flex justify-between items-center text-xs text-gray-500 z-10">
-        <span>Neon Showdown © 2026. Built with Pure PeerJS & autoritative Canvas.</span>
-        <span id="activeRoleText">Mode: Idle</span>
-    </footer>
+  <!-- Footer block -->
+  <footer class="border-t border-slate-900/80 bg-slate-950/60 py-5 text-center text-xs text-slate-500">
+    <div class="max-w-6xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+      <p>&copy; 2026 Homework Radio Station. Decentralized Study Hub.</p>
+      <div class="flex items-center gap-4 text-[11px] text-slate-400">
+        <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-emerald-500"></span> Fully Encrypted</span>
+        <span>Made for productive students worldwide</span>
+      </div>
+    </div>
+  </footer>
 
-    <!-- INTERACTION LOGIC / SCRIPT -->
-    <script>
-        // -------------------------------------------------------------
-        // AUDIO SYNTHESIS CLASS (Procedural Sound Design)
-        // -------------------------------------------------------------
-        class SoundFX {
-            constructor() {
-                this.ctx = null;
-            }
+  <!-- Application Logic -->
+  <script>
+    // Configuration
+    const HOST_PASSWORD = "Bryant Reitzel";
 
-            init() {
-                if (!this.ctx) {
-                    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
-                }
-            }
+    // Application State Variables
+    let peer = null;
+    let localStream = null;
+    let remoteStream = null;
+    let activeConnections = []; // Data connections (chat + peer lists)
+    let activeCalls = []; // Outgoing calls to listeners
+    let incomingCall = null;
+    
+    // Web Audio State
+    let audioCtx = null;
+    let analyzer = null;
+    let dataArray = null;
+    let visualizerAnimId = null;
 
-            playShoot() {
-                this.init();
-                const now = this.ctx.currentTime;
-                const osc = this.ctx.createOscillator();
-                const gain = this.ctx.createGain();
-                
-                osc.type = 'sawtooth';
-                osc.frequency.setValueAtTime(800, now);
-                osc.frequency.exponentialRampToValueAtTime(100, now + 0.15);
-                
-                gain.gain.setValueAtTime(0.2, now);
-                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
-                
-                osc.connect(gain);
-                gain.connect(this.ctx.destination);
-                osc.start(now);
-                osc.stop(now + 0.15);
-            }
+    // User metadata
+    let currentUserRole = null; // 'host' or 'listener'
+    let currentRoomId = "study-lounge";
+    let myNickname = "Anonymous";
+    let myColor = "#f43f5e";
 
-            playJump() {
-                this.init();
-                const now = this.ctx.currentTime;
-                const osc = this.ctx.createOscillator();
-                const gain = this.ctx.createGain();
-                
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(180, now);
-                osc.frequency.exponentialRampToValueAtTime(450, now + 0.12);
-                
-                gain.gain.setValueAtTime(0.15, now);
-                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
-                
-                osc.connect(gain);
-                gain.connect(this.ctx.destination);
-                osc.start(now);
-                osc.stop(now + 0.15);
-            }
+    // Sub-lobbies (when host is offline, listeners coordinate amongst themselves)
+    let isLobbyCoordinator = false;
 
-            playExplosion() {
-                this.init();
-                const now = this.ctx.currentTime;
-                
-                // Noise buffer generation
-                const bufferSize = this.ctx.sampleRate * 0.4;
-                const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
-                const data = buffer.getChannelData(0);
-                for (let i = 0; i < bufferSize; i++) {
-                    data[i] = Math.random() * 2 - 1;
-                }
-                
-                const noise = this.ctx.createBufferSource();
-                noise.buffer = buffer;
-                
-                const filter = this.ctx.createBiquadFilter();
-                filter.type = 'lowpass';
-                filter.frequency.setValueAtTime(400, now);
-                filter.frequency.exponentialRampToValueAtTime(40, now + 0.35);
-                
-                const gain = this.ctx.createGain();
-                gain.gain.setValueAtTime(0.4, now);
-                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
-                
-                noise.connect(filter);
-                filter.connect(gain);
-                gain.connect(this.ctx.destination);
-                
-                noise.start(now);
-                noise.stop(now + 0.45);
-            }
+    // Grab elements
+    const tabTuneIn = document.getElementById('tabTuneIn');
+    const tabHost = document.getElementById('tabHost');
+    const tuneInForm = document.getElementById('tuneInForm');
+    const hostForm = document.getElementById('hostForm');
+    
+    const listenerName = document.getElementById('listenerName');
+    const avatarColor = document.getElementById('avatarColor');
+    const listenerRoom = document.getElementById('listenerRoom');
+    const btnStartListening = document.getElementById('btnStartListening');
+    
+    const hostPassword = document.getElementById('hostPassword');
+    const hostRoom = document.getElementById('hostRoom');
+    const btnStartHosting = document.getElementById('btnStartHosting');
 
-            playDash() {
-                this.init();
-                const now = this.ctx.currentTime;
-                const osc = this.ctx.createOscillator();
-                const gain = this.ctx.createGain();
-                
-                osc.type = 'triangle';
-                osc.frequency.setValueAtTime(100, now);
-                osc.frequency.linearRampToValueAtTime(350, now + 0.1);
-                
-                gain.gain.setValueAtTime(0.2, now);
-                gain.gain.linearRampToValueAtTime(0.01, now + 0.1);
-                
-                osc.connect(gain);
-                gain.connect(this.ctx.destination);
-                osc.start(now);
-                osc.stop(now + 0.1);
-            }
+    const deckSelectionArea = document.getElementById('deckSelectionArea');
+    const activeDashboard = document.getElementById('activeDashboard');
+    const activeLabel = document.getElementById('activeLabel');
+    const activeRoomName = document.getElementById('activeRoomName');
+    const btnLeaveSession = document.getElementById('btnLeaveSession');
+    const txtPeerCount = document.getElementById('txtPeerCount');
+    const txtStatusLabel = document.getElementById('txtStatusLabel');
+    
+    const receiverPlayerBlock = document.getElementById('receiverPlayerBlock');
+    const listenerVolume = document.getElementById('listenerVolume');
+    const volumePercentage = document.getElementById('volumePercentage');
+    
+    const liveVizCanvas = document.getElementById('liveVizCanvas');
+    const vizCtx = liveVizCanvas.getContext('2d');
 
-            playPickup() {
-                this.init();
-                const now = this.ctx.currentTime;
-                const osc = this.ctx.createOscillator();
-                const gain = this.ctx.createGain();
-                
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(523.25, now); // C5
-                osc.frequency.setValueAtTime(783.99, now + 0.08); // G5
-                
-                gain.gain.setValueAtTime(0.15, now);
-                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
-                
-                osc.connect(gain);
-                gain.connect(this.ctx.destination);
-                osc.start(now);
-                osc.stop(now + 0.25);
-            }
+    const chatMessages = document.getElementById('chatMessages');
+    const chatInput = document.getElementById('chatInput');
+    const btnSendChat = document.getElementById('btnSendChat');
+    const chatForm = document.getElementById('chatForm');
+    const chatRoomHeader = document.getElementById('chatRoomHeader');
+    const chatRoomSubtitle = document.getElementById('chatRoomSubtitle');
+    const lobbyStatusBadge = document.getElementById('lobbyStatusBadge');
+    const chatHeaderPulse = document.getElementById('chatHeaderPulse');
 
-            playHit() {
-                this.init();
-                const now = this.ctx.currentTime;
-                const osc = this.ctx.createOscillator();
-                const gain = this.ctx.createGain();
-                
-                osc.type = 'sawtooth';
-                osc.frequency.setValueAtTime(120, now);
-                osc.frequency.exponentialRampToValueAtTime(30, now + 0.06);
-                
-                gain.gain.setValueAtTime(0.1, now);
-                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.06);
-                
-                osc.connect(gain);
-                gain.connect(this.ctx.destination);
-                osc.start(now);
-                osc.stop(now + 0.06);
-            }
+    const indicatorDot = document.getElementById('indicatorDot');
+    const indicatorText = document.getElementById('indicatorText');
+
+    const modalOverlay = document.getElementById('modalOverlay');
+    const modalTitle = document.getElementById('modalTitle');
+    const modalDescription = document.getElementById('modalDescription');
+    const modalBtnClose = document.getElementById('modalBtnClose');
+
+    // UI Tab toggle
+    tabTuneIn.addEventListener('click', () => {
+      tabTuneIn.className = "py-2.5 text-sm font-semibold rounded-lg transition-all text-rose-400 bg-slate-900 border border-slate-800";
+      tabHost.className = "py-2.5 text-sm font-semibold rounded-lg transition-all text-slate-400 hover:text-slate-200";
+      tuneInForm.classList.remove('hidden');
+      hostForm.classList.add('hidden');
+    });
+
+    tabHost.addEventListener('click', () => {
+      tabHost.className = "py-2.5 text-sm font-semibold rounded-lg transition-all text-rose-400 bg-slate-900 border border-slate-800";
+      tabTuneIn.className = "py-2.5 text-sm font-semibold rounded-lg transition-all text-slate-400 hover:text-slate-200";
+      hostForm.classList.remove('hidden');
+      tuneInForm.classList.add('hidden');
+    });
+
+    // Alert Utilities
+    function showModal(title, text) {
+      modalTitle.innerText = title;
+      modalDescription.innerHTML = text;
+      modalOverlay.classList.remove('hidden');
+    }
+    modalBtnClose.addEventListener('click', () => {
+      modalOverlay.classList.add('hidden');
+    });
+
+    // Generate unique random string for user peer IDs
+    function makeId(length) {
+      let result = '';
+      const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+      for (let i = 0; i < length; i++) {
+        result += characters.charAt(Math.floor(Math.random() * characters.length));
+      }
+      return result;
+    }
+
+    // Connect display spectrum
+    function initVisualizer(stream) {
+      // Disconnect old animation
+      if (visualizerAnimId) {
+        cancelAnimationFrame(visualizerAnimId);
+      }
+
+      try {
+        if (!audioCtx) {
+          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         }
-
-        const sfx = new SoundFX();
-
-        // -------------------------------------------------------------
-        // DOM ELEMENTS & GLOBAL VARIABLES
-        // -------------------------------------------------------------
-        const mainMenu = document.getElementById('mainMenu');
-        const gameScreen = document.getElementById('gameScreen');
-        const displayRoomCode = document.getElementById('displayRoomCode');
-        const playerList = document.getElementById('playerList');
-        const playerCount = document.getElementById('playerCount');
-        const connectionStatus = document.getElementById('connectionStatus');
-        const statusText = document.getElementById('statusText');
-        const activeRoleText = document.getElementById('activeRoleText');
-        const roleIndicator = document.getElementById('roleIndicator');
-        const gameCanvas = document.getElementById('gameCanvas');
-        const ctx = gameCanvas.getContext('2d');
-
-        // Toast
-        const toast = document.getElementById('toast');
-        const toastMessage = document.getElementById('toastMessage');
-
-        // HUD Elements
-        const hudHpBar = document.getElementById('hudHpBar');
-        const hudHpText = document.getElementById('hudHpText');
-        const hudLevel = document.getElementById('hudLevel');
-        const hudXpBar = document.getElementById('hudXpBar');
-        const hudXpGoalText = document.getElementById('hudXpGoalText');
-        const hudGrenadeIcon = document.getElementById('hudGrenadeIcon');
-        const hudGrenadeText = document.getElementById('hudGrenadeText');
-        const respawnOverlay = document.getElementById('respawnOverlay');
-        const respawnCircle = document.getElementById('respawnCircle');
-        const respawnTimeText = document.getElementById('respawnTimeText');
-
-        // Unlock Elements
-        const unlockDash = document.getElementById('unlockDash');
-        const unlockSlam = document.getElementById('unlockSlam');
-        const unlockHighJump = document.getElementById('unlockHighJump');
-        const unlockMaxHp = document.getElementById('unlockMaxHp');
-
-        // Network Config
-        let peer = null;
-        let isHost = false;
-        let myId = null;
-        let connections = {}; // For host: ID -> Connection; For client: contains only connection to host
-        let roomCode = null;
-
-        // Game Configuration & Static State
-        const ARENA_WIDTH = 960;
-        const ARENA_HEIGHT = 600;
-        const GRAVITY = 0.45;
-        const RESPAWN_TIME = 15; // seconds
-        const IFRAME_TIME = 2; // seconds
-
-        // Platform coordinates (Map design)
-        const PLATFORMS = [
-            { x: 0, y: 550, width: ARENA_WIDTH, height: 50, isFloor: true }, // Main Floor
-            { x: 100, y: 410, width: 250, height: 16 }, // Bottom Left
-            { x: 610, y: 410, width: 250, height: 16 }, // Bottom Right
-            { x: 380, y: 310, width: 200, height: 16 }, // Mid center
-            { x: 150, y: 190, width: 200, height: 16 }, // Top Left
-            { x: 610, y: 190, width: 200, height: 16 }  // Top Right
-        ];
-
-        // Active dynamic logic states (Only fully handled on Host)
-        let players = {};     // id -> Player object
-        let bullets = [];     // Array of bullet objects
-        let grenades = [];    // Array of grenade objects
-        let drops = [];       // Life drops or XP drops
-        let explosions = [];  // Splash damage explosions visually and logically
-        let particles = [];   // Pure visual sparks
-
-        // Keyboard & Mouse inputs for Local Player
-        const inputs = {
-            left: false,
-            right: false,
-            up: false,
-            down: false,
-            shoot: false,
-            grenade: false,
-            mouseX: 0,
-            mouseY: 0
-        };
-
-        // Track local keyboard tap history for directional dashes
-        let lastLeftPressTime = 0;
-        let lastRightPressTime = 0;
-        let localPlayerDead = false;
-        let localPlayerRespawnTime = 0;
-
-        // Custom Local Player Upgrades Tracking
-        let localMaxHp = 1000;
-        let currentLevel = 1;
-
-        // Custom Helper: Toast alert
-        function showToast(message) {
-            toastMessage.textContent = message;
-            toast.classList.remove('hidden');
-            setTimeout(() => {
-                toast.classList.add('hidden');
-            }, 4000);
-        }
-
-        // Room code helper (Generate simple 6 letter uppercase codes)
-        function makeCode(length = 6) {
-            let result = '';
-            const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-            for (let i = 0; i < length; i++) {
-                result += characters.charAt(Math.floor(Math.random() * characters.length));
-            }
-            return result;
-        }
-
-        // Color helper
-        const COLOR_LIST = [
-            '#ef4444', '#f97316', '#eab308', '#22c55e', '#06b6d4', 
-            '#3b82f6', '#6366f1', '#a855f7', '#ec4899', '#f43f5e'
-        ];
-
-        // -------------------------------------------------------------
-        // ENTITY CLASSES
-        // -------------------------------------------------------------
-        class Player {
-            constructor(id, name, x, y, color) {
-                this.id = id;
-                this.name = name.slice(0, 15);
-                this.x = x;
-                this.y = y;
-                this.vx = 0;
-                this.vy = 0;
-                this.width = 30;
-                this.height = 42;
-                this.color = color;
-                
-                // Statistics
-                this.hp = 1000;
-                this.maxHp = 1000;
-                this.xp = 0;
-                this.level = 1;
-
-                // Physics states
-                this.onGround = false;
-                this.jumpsLeft = 2;
-                this.dashCooldown = 0; // Tick counts
-                this.grenadeCooldown = 0; // Ticks
-
-                // Special Actions
-                this.isSlamming = false;
-                this.iFrameTicks = 2 * 60; // Start with 2 seconds invincibility
-                this.dashTimer = 0; 
-                this.dashDir = 0;
-
-                // Visual Interpolation (for clients)
-                this.targetX = x;
-                this.targetY = y;
-            }
-
-            getIsInvincible() {
-                return this.iFrameTicks > 0;
-            }
-        }
-
-        class Bullet {
-            constructor(x, y, vx, vy, ownerId) {
-                this.x = x;
-                this.y = y;
-                this.vx = vx;
-                this.vy = vy;
-                this.radius = 4;
-                this.ownerId = ownerId;
-                this.life = 120; // 2 seconds
-            }
-        }
-
-        class Grenade {
-            constructor(x, y, vx, vy, ownerId) {
-                this.x = x;
-                this.y = y;
-                this.vx = vx;
-                this.vy = vy;
-                this.radius = 8;
-                this.ownerId = ownerId;
-                this.timer = 90; // Explodes in 1.5 seconds
-            }
-        }
-
-        class Drop {
-            constructor(x, y, type, amount) {
-                this.x = x;
-                this.y = y;
-                this.vx = (Math.random() - 0.5) * 6;
-                this.vy = -Math.random() * 6 - 3;
-                this.width = 16;
-                this.height = 16;
-                this.type = type; // 'hp' or 'xp'
-                this.amount = amount;
-                this.life = 600; // 10 seconds decay
-                this.onGround = false;
-            }
-        }
-
-        class VisualExplosion {
-            constructor(x, y, radius, maxRadius, color) {
-                this.x = x;
-                this.y = y;
-                this.radius = radius;
-                this.maxRadius = maxRadius;
-                this.color = color;
-                this.opacity = 1.0;
-            }
-        }
-
-        // -------------------------------------------------------------
-        // NETWORKING INITIALIZATION
-        // -------------------------------------------------------------
         
-        // Host Game setup
-        document.getElementById('btnHost').addEventListener('click', () => {
-            const name = document.getElementById('hostName').value.trim() || 'EliteHost';
-            initPeerConnection(true, name);
-        });
-
-        // Join Game setup
-        document.getElementById('btnJoin').addEventListener('click', () => {
-            const name = document.getElementById('clientName').value.trim() || 'CyberWarrior';
-            const code = document.getElementById('joinRoomCode').value.trim().toUpperCase();
-            if (!code) {
-                showToast("Please enter a valid Arena Room Code.");
-                return;
-            }
-            initPeerConnection(false, name, code);
-        });
-
-        // Easy Code Copying function
-        displayRoomCode.addEventListener('click', () => {
-            if (roomCode) {
-                document.execCommand('copy'); // Fallback for secure environment if clipboard API blocks
-                navigator.clipboard.writeText(roomCode).then(() => {
-                    showToast("Room code copied to clipboard!");
-                }).catch(() => {
-                    // Fail-safe copy
-                    const dummy = document.createElement("textarea");
-                    document.body.appendChild(dummy);
-                    dummy.value = roomCode;
-                    dummy.select();
-                    document.execCommand("copy");
-                    document.body.removeChild(dummy);
-                    showToast("Room code copied to clipboard!");
-                });
-            }
-        });
-
-        function initPeerConnection(hostRole, name, targetCode = null) {
-            // Trigger Audio context init
-            sfx.init();
-
-            // Set up visual UI load state
-            document.getElementById('statusText').innerText = "Connecting...";
-            document.getElementById('statusText').className = "text-yellow-400";
-
-            if (hostRole) {
-                isHost = true;
-                roomCode = makeCode(6);
-                myId = 'NS-' + roomCode;
-            } else {
-                isHost = false;
-                roomCode = targetCode;
-                myId = 'NS-CL-' + makeCode(4);
-            }
-
-            // Create Peer instance targeting the custom room code or general PeerJS server
-            peer = new Peer(hostRole ? myId : undefined, {
-                debug: 1
-            });
-
-            peer.on('open', (id) => {
-                if (isHost) {
-                    onHostOpened(name);
-                } else {
-                    onClientOpened(name);
-                }
-            });
-
-            peer.on('error', (err) => {
-                console.error("PeerJS Error:", err);
-                showToast("Failed to join/host. Room might not exist or code is already in use.");
-                resetToMenu();
-            });
-        }
-
-        // -------------------------------------------------------------
-        // HOST-SPECIFIC CONNECTIONS
-        // -------------------------------------------------------------
-        function onHostOpened(name) {
-            statusText.innerText = "Host Ready";
-            statusText.className = "text-emerald-400 font-bold";
-            activeRoleText.innerText = "Mode: Dedicated Host";
-            roleIndicator.className = "absolute top-0 left-0 w-1.5 h-full bg-emerald-500 animate-pulse";
-            displayRoomCode.innerText = roomCode;
-
-            // Instantly spawn host as player in own state
-            players['host'] = new Player('host', name, 150, 200, '#10b981');
-            updateUILeaderboard();
-
-            // Listen for connections
-            peer.on('connection', (conn) => {
-                setupHostConnectionListeners(conn);
-            });
-
-            // Start master physics simulation and broadcast loop
-            requestAnimationFrame(hostGameLoop);
-            transitionToGame();
-        }
-
-        function setupHostConnectionListeners(conn) {
-            conn.on('open', () => {
-                const connId = conn.peer;
-                connections[connId] = conn;
-                
-                // Let other clients know who connected eventually. For now, wait for join request.
-                console.log(`Connection opened: ${connId}`);
-            });
-
-            conn.on('data', (data) => {
-                const connId = conn.peer;
-                
-                if (data.type === 'join') {
-                    // Create peer player at dynamic coordinate
-                    const rX = 100 + Math.random() * (ARENA_WIDTH - 200);
-                    const rY = 100 + Math.random() * 200;
-                    const rColor = COLOR_LIST[Math.floor(Math.random() * COLOR_LIST.length)];
-                    
-                    players[connId] = new Player(connId, data.name, rX, rY, rColor);
-                    
-                    // Respond with init details and arena setup
-                    conn.send({
-                        type: 'init',
-                        yourId: connId,
-                        platforms: PLATFORMS
-                    });
-
-                    sfx.playPickup();
-                    updateUILeaderboard();
-                    broadcastSystemMessage(`${data.name} has joined the combat arena!`);
-                }
-
-                if (data.type === 'input') {
-                    // Apply inputs to host-maintained dynamic representations
-                    const p = players[connId];
-                    if (p && p.hp > 0) {
-                        applyPlayerInputs(p, data.inputs);
-                    }
-                }
-            });
-
-            conn.on('close', () => {
-                const connId = conn.peer;
-                handlePlayerDisconnect(connId);
-            });
-
-            conn.on('error', () => {
-                const connId = conn.peer;
-                handlePlayerDisconnect(connId);
-            });
-        }
-
-        function handlePlayerDisconnect(id) {
-            if (players[id]) {
-                const pName = players[id].name;
-                delete players[id];
-                delete connections[id];
-                updateUILeaderboard();
-                broadcastSystemMessage(`${pName} departed the arena.`);
-            }
-        }
-
-        function kickPlayer(id) {
-            if (!isHost) return;
-            const targetConn = connections[id];
-            if (targetConn) {
-                targetConn.send({ type: 'kicked' });
-                setTimeout(() => {
-                    targetConn.close();
-                    handlePlayerDisconnect(id);
-                }, 100);
-            }
-        }
-
-        function broadcastSystemMessage(msg) {
-            // Send visual messages down line or feed game logs
-            console.log(`[ARENA BROADCAST]: ${msg}`);
-        }
-
-        // -------------------------------------------------------------
-        // CLIENT-SPECIFIC CONNECTIONS
-        // -------------------------------------------------------------
-        function onClientOpened(name) {
-            statusText.innerText = "Connecting Client...";
-            statusText.className = "text-yellow-400";
-
-            const hostId = 'NS-' + roomCode;
-            const conn = peer.connect(hostId);
-            
-            conn.on('open', () => {
-                connections[hostId] = conn;
-                statusText.innerText = "Connected";
-                statusText.className = "text-blue-400 font-bold";
-                activeRoleText.innerText = "Mode: Client Warrior";
-                roleIndicator.className = "absolute top-0 left-0 w-1.5 h-full bg-blue-500 animate-pulse";
-                displayRoomCode.innerText = roomCode;
-
-                // Send registration packet
-                conn.send({
-                    type: 'join',
-                    name: name
-                });
-
-                transitionToGame();
-                requestAnimationFrame(clientRenderLoop);
-            });
-
-            conn.on('data', (data) => {
-                if (data.type === 'init') {
-                    myId = data.yourId;
-                }
-
-                if (data.type === 'state') {
-                    // Update client copy of game variables with fresh simulation ticks from host
-                    players = data.players;
-                    bullets = data.bullets;
-                    grenades = data.grenades;
-                    drops = data.drops;
-                    explosions = data.explosions;
-                    particles = particles.concat(data.particles || []); // Append temporary collision sparks
-                    
-                    // Render locally calculated client upgrades
-                    const localMe = players[myId];
-                    if (localMe) {
-                        updateClientHUD(localMe);
-                    }
-                }
-
-                if (data.type === 'kicked') {
-                    showToast("You were kicked by the Host administrator.");
-                    setTimeout(() => {
-                        window.location.reload();
-                    }, 3000);
-                }
-            });
-
-            conn.on('close', () => {
-                showToast("Connection to Host lost. Returning to base.");
-                resetToMenu();
-            });
-
-            conn.on('error', () => {
-                showToast("WebRTC payload error encountered.");
-                resetToMenu();
-            });
-        }
-
-        // -------------------------------------------------------------
-        // MOVEMENT, ACTIONS, AND COLLISION CALCULATIONS (HOST MASTER ENGINE)
-        // -------------------------------------------------------------
-        function applyPlayerInputs(player, inKeys) {
-            // Apply Horizontal inputs (ignore if currently Ground Slamming to keep dynamic momentum)
-            if (!player.isSlamming) {
-                if (inKeys.left) {
-                    player.vx = -4.5 - (player.level >= 6 ? 1.0 : 0);
-                } else if (inKeys.right) {
-                    player.vx = 4.5 + (player.level >= 6 ? 1.0 : 0);
-                } else {
-                    player.vx *= 0.82; // Friction deceleration
-                }
-            }
-
-            // Jump & Double Jump Command Handling
-            if (inKeys.up) {
-                // Throttle input to prevent holding jump down
-                if (!player.jumpPressedLast) {
-                    let hasHighJump = player.level >= 4;
-                    let jumpPower = hasHighJump ? -13.5 : -11.0;
-
-                    if (player.onGround) {
-                        player.vy = jumpPower;
-                        player.onGround = false;
-                        player.jumpsLeft = 1;
-                        sfx.playJump();
-                        createSparkles(player.x + 15, player.y + 42, player.color, 12);
-                    } else if (player.jumpsLeft > 0) {
-                        player.vy = jumpPower;
-                        player.jumpsLeft--;
-                        sfx.playJump();
-                        createSparkles(player.x + 15, player.y + 20, '#ffffff', 15);
-                    }
-                    player.jumpPressedLast = true;
-                }
-            } else {
-                player.jumpPressedLast = false;
-            }
-
-            // Ground slam / pound Downward action (Unlocked at level 3, 250 XP)
-            if (inKeys.down && !player.onGround && player.level >= 3) {
-                if (!player.isSlamming) {
-                    player.isSlamming = true;
-                    player.vx = 0;
-                    player.vy = 22; // High-velocity downwards slam
-                    sfx.playDash();
-                }
-            }
-
-            // Ground Slam logic ticks & trail generation
-            if (player.isSlamming) {
-                createSparkles(player.x + 15, player.y + 20, player.color, 2);
-            }
-
-            // Directional Double-Tap Air Dashes (Level 2+, 100 XP)
-            if (inKeys.dashDir !== 0 && player.dashCooldown <= 0 && player.level >= 2) {
-                player.vx = inKeys.dashDir * 16;
-                player.vy = -1.5; // Slight vertical float during dash
-                player.dashCooldown = 60; // 1 second cooldown
-                player.dashTimer = 10;    // Active dash dynamic ticks
-                player.dashDir = inKeys.dashDir;
-                sfx.playDash();
-                createSparkles(player.x + 15, player.y + 20, '#60a5fa', 15);
-            }
-
-            // Track shooting actions (only if not currently invincible)
-            if (inKeys.shoot && !player.getIsInvincible()) {
-                if (!player.shootPressedLast) {
-                    // Spawn bullet centered on player shooting towards mouse coordinates
-                    const playerCenterX = player.x + player.width / 2;
-                    const playerCenterY = player.y + player.height / 2;
-                    const dx = inKeys.mouseX - playerCenterX;
-                    const dy = inKeys.mouseY - playerCenterY;
-                    const angle = Math.atan2(dy, dx);
-                    
-                    const bvx = Math.cos(angle) * 14;
-                    const bvy = Math.sin(angle) * 14;
-
-                    bullets.push(new Bullet(playerCenterX, playerCenterY, bvx, bvy, player.id));
-                    player.shootPressedLast = true;
-                    sfx.playShoot();
-                }
-            } else {
-                player.shootPressedLast = false;
-            }
-
-            // Track grenade release (recharges over time, 5s limit)
-            if (inKeys.grenade && !player.getIsInvincible() && player.grenadeCooldown <= 0) {
-                const playerCenterX = player.x + player.width / 2;
-                const playerCenterY = player.y + player.height / 2;
-                const dx = inKeys.mouseX - playerCenterX;
-                const dy = inKeys.mouseY - playerCenterY;
-                const angle = Math.atan2(dy, dx);
-
-                const gvx = Math.cos(angle) * 10;
-                const gvy = Math.sin(angle) * 10 - 3; // Slanted arch velocity path
-
-                grenades.push(new Grenade(playerCenterX, playerCenterY, gvx, gvy, player.id));
-                player.grenadeCooldown = 5 * 60; // 5 seconds recharge
-                sfx.playShoot();
-            }
-        }
-
-        // Single master physics calculations (Executed exclusively on Host)
-        function updatePhysicsStep() {
-            // 1. Players movement & platform/boundary checks
-            for (let pid in players) {
-                const p = players[pid];
-                if (p.hp <= 0) continue; // Skip updates for dead/spectating players
-
-                // Handle Invincibility countdown
-                if (p.iFrameTicks > 0) p.iFrameTicks--;
-
-                // Handle cooldown timers
-                if (p.dashCooldown > 0) p.dashCooldown--;
-                if (p.grenadeCooldown > 0) p.grenadeCooldown--;
-                if (p.dashTimer > 0) {
-                    p.dashTimer--;
-                    // Apply dash speed overrides
-                    p.vx = p.dashDir * 15;
-                    p.vy = 0;
-                }
-
-                // Apply simple gravity
-                if (!p.onGround && p.dashTimer <= 0) {
-                    p.vy += GRAVITY;
-                }
-
-                // Temporary velocity moves
-                p.x += p.vx;
-                p.y += p.vy;
-
-                // Simple collision check boundaries (Closed arena constraints)
-                if (p.x < 10) { p.x = 10; p.vx = 0; }
-                if (p.x + p.width > ARENA_WIDTH - 10) { p.x = ARENA_WIDTH - 10 - p.width; p.vx = 0; }
-                if (p.y < 10) { p.y = 10; p.vy = 0; }
-
-                // Check Platform collisions
-                let hitPlatform = false;
-                for (let plat of PLATFORMS) {
-                    // Check horizontal intersection boundaries
-                    if (p.x + p.width > plat.x && p.x < plat.x + plat.width) {
-                        // Check downward moving collision through tops of platforms (Standard platform style logic)
-                        if (p.vy >= 0 && (p.y + p.height - p.vy <= plat.y + 4) && (p.y + p.height >= plat.y)) {
-                            p.y = plat.y - p.height;
-                            p.vy = 0;
-                            hitPlatform = true;
-                        }
-                    }
-                }
-
-                if (hitPlatform) {
-                    p.onGround = true;
-                    p.jumpsLeft = 2;
-
-                    // Ground Slam Splash Explosion check
-                    if (p.isSlamming) {
-                        p.isSlamming = false;
-                        triggerSlamSplashDamage(p);
-                    }
-                } else {
-                    p.onGround = false;
-                }
-            }
-
-            // 2. Bullet movement & collisions
-            for (let i = bullets.length - 1; i >= 0; i--) {
-                const b = bullets[i];
-                b.x += b.vx;
-                b.y += b.vy;
-                b.life--;
-
-                // Hit bounds check
-                let bulletDestroyed = false;
-                if (b.x < 0 || b.x > ARENA_WIDTH || b.y < 0 || b.y > ARENA_HEIGHT || b.life <= 0) {
-                    bulletDestroyed = true;
-                }
-
-                // Check wall platform impact
-                if (!bulletDestroyed) {
-                    for (let plat of PLATFORMS) {
-                        if (b.x > plat.x && b.x < plat.x + plat.width && b.y > plat.y && b.y < plat.y + plat.height) {
-                            bulletDestroyed = true;
-                            createSparkles(b.x, b.y, '#ffffff', 5);
-                            break;
-                        }
-                    }
-                }
-
-                // Check impact on other players
-                if (!bulletDestroyed) {
-                    for (let pid in players) {
-                        const target = players[pid];
-                        if (target.id === b.ownerId || target.hp <= 0 || target.getIsInvincible()) continue;
-
-                        if (b.x > target.x && b.x < target.x + target.width && b.y > target.y && b.y < target.y + target.height) {
-                            // Inflict damage
-                            target.hp -= 75; // Standard Pistol high damage
-                            bulletDestroyed = true;
-                            createSparkles(b.x, b.y, '#f43f5e', 8);
-                            sfx.playHit();
-
-                            // Validate kill
-                            if (target.hp <= 0) {
-                                handlePlayerElimination(target, b.ownerId);
-                            }
-                            break;
-                        }
-                    }
-                }
-
-                if (bulletDestroyed) {
-                    bullets.splice(i, 1);
-                }
-            }
-
-            // 3. Grenade movement, physics & explosive splash trigger
-            for (let i = grenades.length - 1; i >= 0; i--) {
-                const g = grenades[i];
-                g.vy += GRAVITY * 0.8; // Lighter weight trajectory gravity
-                g.x += g.vx;
-                g.y += g.vy;
-                g.timer--;
-
-                let explode = false;
-
-                // Collide with boundary floors/walls
-                if (g.x < 15) { g.x = 15; g.vx = -g.vx * 0.6; }
-                if (g.x > ARENA_WIDTH - 15) { g.x = ARENA_WIDTH - 15; g.vx = -g.vx * 0.6; }
-                if (g.y > ARENA_HEIGHT - 60) { g.y = ARENA_HEIGHT - 60; g.vy = -g.vy * 0.6; g.vx *= 0.8; }
-
-                // Check immediate contact with other players
-                for (let pid in players) {
-                    const target = players[pid];
-                    if (target.id === g.ownerId || target.hp <= 0 || target.getIsInvincible()) continue;
-
-                    // Direct impact triggers immediate explosion
-                    const distSq = Math.pow(g.x - (target.x + 15), 2) + Math.pow(g.y - (target.y + 21), 2);
-                    if (distSq < Math.pow(target.width + g.radius, 2)) {
-                        explode = true;
-                        break;
-                    }
-                }
-
-                // Handle manual fuse timer explosion
-                if (g.timer <= 0) {
-                    explode = true;
-                }
-
-                if (explode) {
-                    triggerGrenadeExplosion(g);
-                    grenades.splice(i, 1);
-                }
-            }
-
-            // 4. Update visual explosions countdown list
-            for (let i = explosions.length - 1; i >= 0; i--) {
-                const exp = explosions[i];
-                exp.radius += (exp.maxRadius - exp.radius) * 0.15;
-                exp.opacity -= 0.05;
-                if (exp.opacity <= 0) {
-                    explosions.splice(i, 1);
-                }
-            }
-
-            // 5. Upgrade Drop objects gravity & pickups
-            for (let i = drops.length - 1; i >= 0; i--) {
-                const d = drops[i];
-                if (!d.onGround) {
-                    d.vy += GRAVITY * 0.5;
-                }
-                d.x += d.vx;
-                d.y += d.vy;
-                d.vx *= 0.95; // Friction slide
-                d.life--;
-
-                // Simple collision with arena floors
-                if (d.y + d.height >= ARENA_HEIGHT - 50) {
-                    d.y = ARENA_HEIGHT - 50 - d.height;
-                    d.vy = 0;
-                    d.onGround = true;
-                }
-
-                // Hit platform detection
-                for (let plat of PLATFORMS) {
-                    if (d.x + d.width > plat.x && d.x < plat.x + plat.width) {
-                        if (d.vy >= 0 && (d.y + d.height - d.vy <= plat.y + 4) && (d.y + d.height >= plat.y)) {
-                            d.y = plat.y - d.height;
-                            d.vy = 0;
-                            d.onGround = true;
-                        }
-                    }
-                }
-
-                // Check pickup logic
-                let pickedUp = false;
-                for (let pid in players) {
-                    const target = players[pid];
-                    if (target.hp <= 0) continue;
-
-                    const pCenterX = target.x + target.width / 2;
-                    const pCenterY = target.y + target.height / 2;
-                    const dropCenterX = d.x + d.width / 2;
-                    const dropCenterY = d.y + d.height / 2;
-
-                    const dist = Math.hypot(pCenterX - dropCenterX, pCenterY - dropCenterY);
-                    if (dist < 32) {
-                        pickedUp = true;
-                        if (d.type === 'hp') {
-                            target.hp = Math.min(target.maxHp, target.hp + d.amount);
-                        } else if (d.type === 'xp') {
-                            target.xp += d.amount;
-                            evaluatePlayerUpgrades(target);
-                        }
-                        sfx.playPickup();
-                        createSparkles(d.x + 8, d.y + 8, d.type === 'hp' ? '#10b981' : '#fbbf24', 15);
-                        break;
-                    }
-                }
-
-                if (pickedUp || d.life <= 0) {
-                    drops.splice(i, 1);
-                }
-            }
-
-            // 6. Update pure visual particle sparks
-            for (let i = particles.length - 1; i >= 0; i--) {
-                const p = particles[i];
-                p.x += p.vx;
-                p.y += p.vy;
-                p.vy += GRAVITY * 0.3;
-                p.life--;
-                if (p.life <= 0) {
-                    particles.splice(i, 1);
-                }
-            }
-        }
-
-        // -------------------------------------------------------------
-        // GAMEPLAY RULES & COMBAT ACTIONS
-        // -------------------------------------------------------------
-
-        // Ground Pound Splash High Damage
-        function triggerSlamSplashDamage(p) {
-            sfx.playExplosion();
-            const slamRadius = 160;
-            const maxSlamDamage = 450;
-
-            // Log explosion visual circle
-            explosions.push(new VisualExplosion(p.x + 15, p.y + 42, 10, slamRadius, p.color));
-
-            // Damage detection
-            for (let pid in players) {
-                const target = players[pid];
-                if (target.id === p.id || target.hp <= 0 || target.getIsInvincible()) continue;
-
-                const distance = Math.hypot((p.x + 15) - (target.x + 15), (p.y + 42) - (target.y + 21));
-                if (distance < slamRadius) {
-                    // Linearly scale damage based on proximity
-                    const pct = (slamRadius - distance) / slamRadius;
-                    const finalDamage = Math.round(pct * maxSlamDamage);
-                    target.hp -= finalDamage;
-
-                    createSparkles(target.x + 15, target.y + 20, '#ffffff', 10);
-                    sfx.playHit();
-
-                    if (target.hp <= 0) {
-                        handlePlayerElimination(target, p.id);
-                    }
-                }
-            }
-        }
-
-        // Grenade Splash Explosion
-        function triggerGrenadeExplosion(g) {
-            sfx.playExplosion();
-            const blastRadius = 200;
-            const maxExplosionDamage = 500;
-
-            // Trigger visual explosion ring
-            explosions.push(new VisualExplosion(g.x, g.y, 10, blastRadius, '#ec4899'));
-            createSparkles(g.x, g.y, '#f43f5e', 25);
-
-            // Splash damage calculations
-            for (let pid in players) {
-                const target = players[pid];
-                if (target.hp <= 0 || target.getIsInvincible()) continue;
-
-                const distance = Math.hypot(g.x - (target.x + 15), g.y - (target.y + 21));
-                if (distance < blastRadius) {
-                    const pct = (blastRadius - distance) / blastRadius;
-                    const finalDamage = Math.round(pct * maxExplosionDamage);
-                    target.hp -= finalDamage;
-
-                    createSparkles(target.x + 15, target.y + 20, '#ec4899', 12);
-                    sfx.playHit();
-
-                    if (target.hp <= 0) {
-                        handlePlayerElimination(target, g.ownerId);
-                    }
-                }
-            }
-        }
-
-        // Level Up Threshold Check
-        function evaluatePlayerUpgrades(p) {
-            let previousLevel = p.level;
-
-            if (p.xp >= 1000) {
-                p.level = 5;
-                p.maxHp = 1500; // Unlock Max HP Boost
-            } else if (p.xp >= 500) {
-                p.level = 4;
-                p.maxHp = 1000;
-            } else if (p.xp >= 250) {
-                p.level = 3;
-                p.maxHp = 1000;
-            } else if (p.xp >= 100) {
-                p.level = 2;
-                p.maxHp = 1000;
-            } else {
-                p.level = 1;
-                p.maxHp = 1000;
-            }
-
-            // Heal on level changes / boosts
-            if (p.level > previousLevel) {
-                p.hp = p.maxHp; // Heal to full
-                createSparkles(p.x + 15, p.y + 20, '#fbbf24', 30);
-            }
-        }
-
-        // Player Elimination & scattering rewards
-        function handlePlayerElimination(deadPlayer, killerId) {
-            const killer = players[killerId];
-            
-            // Scatter 3 life drops (Green circles, heal +200 HP on touch)
-            for (let i = 0; i < 3; i++) {
-                drops.push(new Drop(deadPlayer.x + 10, deadPlayer.y + 10, 'hp', 200));
-            }
-
-            // Transfer XP: Dead player scatters ALL their XP across the arena floor
-            if (deadPlayer.xp > 0) {
-                const scatterCount = Math.min(10, Math.ceil(deadPlayer.xp / 10));
-                const xpPerDrop = Math.ceil(deadPlayer.xp / scatterCount);
-                for (let i = 0; i < scatterCount; i++) {
-                    drops.push(new Drop(deadPlayer.x + 10, deadPlayer.y + 10, 'xp', xpPerDrop));
-                }
-            }
-
-            // Broadcast message instantly
-            let killMsg = `${deadPlayer.name} was eliminated!`;
-            if (killer) {
-                // Grant all of the victim's XP immediately to killer as well for fast pacing!
-                killer.xp += deadPlayer.xp;
-                evaluatePlayerUpgrades(killer);
-                killMsg = `${killer.name} completely dematerialized ${deadPlayer.name}! (+${deadPlayer.xp} XP)`;
-            }
-            broadcastSystemMessage(killMsg);
-
-            // Trigger client-side respawn timers for the eliminated peer
-            if (deadPlayer.id === 'host') {
-                triggerLocalRespawnCountdown();
-            } else {
-                const conn = connections[deadPlayer.id];
-                if (conn) {
-                    conn.send({
-                        type: 'state',
-                        players: players,
-                        bullets: bullets,
-                        grenades: grenades,
-                        drops: drops,
-                        explosions: explosions
-                    });
-                }
-            }
-        }
-
-        // Visual Spark maker
-        function createSparkles(x, y, color, count) {
-            for (let i = 0; i < count; i++) {
-                particles.push({
-                    x: x,
-                    y: y,
-                    vx: (Math.random() - 0.5) * 8,
-                    vy: (Math.random() - 0.5) * 8 - 2,
-                    color: color,
-                    life: 20 + Math.random() * 25
-                });
-            }
-        }
-
-        // -------------------------------------------------------------
-        // GAME RUN LOOPS (HOST AND CLIENT BRANCHES)
-        // -------------------------------------------------------------
-
-        // AUTHORITATIVE LOOP (Run exclusively by the Host machine)
-        function hostGameLoop() {
-            if (!peer) return; // Disconnected
-
-            // Handle Local host controls directly
-            const localHostPlayer = players['host'];
-            if (localHostPlayer && localHostPlayer.hp > 0) {
-                applyPlayerInputs(localHostPlayer, inputs);
-            }
-
-            // Perform central physics and simulation updates
-            updatePhysicsStep();
-
-            // Render visual canvas frame for the local Host
-            renderFrame();
-
-            // Build payload snapshot package to broadcast to all peer client connections
-            const snapshot = {
-                type: 'state',
-                players: {},
-                bullets: bullets.map(b => ({ x: b.x, y: b.y, radius: b.radius, ownerId: b.ownerId })),
-                grenades: grenades.map(g => ({ x: g.x, y: g.y, radius: g.radius, ownerId: g.ownerId })),
-                drops: drops.map(d => ({ x: d.x, y: d.y, type: d.type, amount: d.amount, width: d.width, height: d.height })),
-                explosions: explosions.map(e => ({ x: e.x, y: e.y, radius: e.radius, maxRadius: e.maxRadius, color: e.color, opacity: e.opacity })),
-                particles: particles.map(p => ({ x: p.x, y: p.y, vx: p.vx, vy: p.vy, color: p.color, life: p.life }))
-            };
-
-            // Minimize string data payload sizes
-            for (let pid in players) {
-                const p = players[pid];
-                snapshot.players[pid] = {
-                    id: p.id,
-                    name: p.name,
-                    x: p.x,
-                    y: p.y,
-                    width: p.width,
-                    height: p.height,
-                    color: p.color,
-                    hp: p.hp,
-                    maxHp: p.maxHp,
-                    xp: p.xp,
-                    level: p.level,
-                    isSlamming: p.isSlamming,
-                    iFrameTicks: p.iFrameTicks,
-                    dashTimer: p.dashTimer,
-                    dashDir: p.dashDir,
-                    grenadeCooldown: p.grenadeCooldown
-                };
-            }
-
-            // Clear temporary collision particles for next frames
-            particles = [];
-
-            // Distribute snapshot broadcast to each peer client
-            for (let cid in connections) {
-                connections[cid].send(snapshot);
-            }
-
-            // Loop again
-            requestAnimationFrame(hostGameLoop);
-        }
-
-        // RENDERING / UPDATE LOOP (Run by connected Clients)
-        function clientRenderLoop() {
-            if (!peer) return; // Exit on disconnect
-
-            // Render synchronized master state
-            renderFrame();
-
-            // Send local inputs straight to the authoritative Host
-            const hostId = 'NS-' + roomCode;
-            const conn = connections[hostId];
-            if (conn && conn.open) {
-                conn.send({
-                    type: 'input',
-                    inputs: inputs
-                });
-            }
-
-            // Reset single-trigger keys to prevent repeating commands
-            inputs.dashDir = 0;
-
-            requestAnimationFrame(clientRenderLoop);
-        }
-
-        // -------------------------------------------------------------
-        // VISUAL CANVAS RENDERING (Shared across Host/Client views)
-        // -------------------------------------------------------------
-        function renderFrame() {
-            // Draw clean dark backdrop
-            ctx.fillStyle = '#0b0c10';
-            ctx.fillRect(0, 0, ARENA_WIDTH, ARENA_HEIGHT);
-
-            // Draw abstract grid decor lines
-            ctx.strokeStyle = '#1f2937';
-            ctx.lineWidth = 1;
-            const gridSize = 40;
-            for (let x = 0; x < ARENA_WIDTH; x += gridSize) {
-                ctx.beginPath();
-                ctx.moveTo(x, 0);
-                ctx.lineTo(x, ARENA_HEIGHT);
-                ctx.stroke();
-            }
-            for (let y = 0; y < ARENA_HEIGHT; y += gridSize) {
-                ctx.beginPath();
-                ctx.moveTo(0, y);
-                ctx.lineTo(ARENA_WIDTH, y);
-                ctx.stroke();
-            }
-
-            // Draw Platforms with retro neon outlines
-            PLATFORMS.forEach(plat => {
-                ctx.fillStyle = '#111827';
-                ctx.fillRect(plat.x, plat.y, plat.width, plat.height);
-
-                ctx.strokeStyle = '#1f2937';
-                ctx.lineWidth = 2;
-                ctx.strokeRect(plat.x, plat.y, plat.width, plat.height);
-
-                // Glow accent for the tops of platforms
-                ctx.beginPath();
-                ctx.strokeStyle = '#4b5563';
-                ctx.moveTo(plat.x, plat.y);
-                ctx.lineTo(plat.x + plat.width, plat.y);
-                ctx.stroke();
-            });
-
-            // Draw drops (Life & XP gems)
-            drops.forEach(d => {
-                ctx.save();
-                ctx.shadowBlur = 10;
-                
-                if (d.type === 'hp') {
-                    // Draw green glowing heart outline
-                    ctx.fillStyle = '#10b981';
-                    ctx.shadowColor = '#10b981';
-                    ctx.beginPath();
-                    ctx.arc(d.x + 8, d.y + 8, 7, 0, Math.PI * 2);
-                    ctx.fill();
-                    
-                    // Cross symbol inside
-                    ctx.fillStyle = '#000000';
-                    ctx.fillRect(d.x + 6, d.y + 3, 4, 10);
-                    ctx.fillRect(d.x + 3, d.y + 6, 10, 4);
-                } else if (d.type === 'xp') {
-                    // Draw glowing gold diamond / XP star
-                    ctx.fillStyle = '#fbbf24';
-                    ctx.shadowColor = '#fbbf24';
-                    ctx.beginPath();
-                    ctx.moveTo(d.x + 8, d.y);
-                    ctx.lineTo(d.x + 16, d.y + 8);
-                    ctx.lineTo(d.x + 8, d.y + 16);
-                    ctx.lineTo(d.x, d.y + 8);
-                    ctx.closePath();
-                    ctx.fill();
-                }
-                ctx.restore();
-            });
-
-            // Draw dynamic explosions
-            explosions.forEach(e => {
-                ctx.save();
-                ctx.strokeStyle = e.color;
-                ctx.lineWidth = 4 * e.opacity;
-                ctx.globalAlpha = e.opacity;
-                ctx.shadowBlur = 15;
-                ctx.shadowColor = e.color;
-                ctx.beginPath();
-                ctx.arc(e.x, e.y, e.radius, 0, Math.PI * 2);
-                ctx.stroke();
-                ctx.restore();
-            });
-
-            // Draw dynamic bullet entities
-            bullets.forEach(b => {
-                ctx.save();
-                ctx.fillStyle = '#ffffff';
-                ctx.shadowBlur = 8;
-                ctx.shadowColor = '#60a5fa';
-                ctx.beginPath();
-                ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.restore();
-            });
-
-            // Draw dynamic grenade entities
-            grenades.forEach(g => {
-                ctx.save();
-                ctx.fillStyle = '#ec4899';
-                ctx.shadowBlur = 12;
-                ctx.shadowColor = '#ec4899';
-                ctx.beginPath();
-                ctx.arc(g.x, g.y, g.radius, 0, Math.PI * 2);
-                ctx.fill();
-
-                // Simple white ticking dot indicator
-                ctx.fillStyle = '#ffffff';
-                ctx.beginPath();
-                ctx.arc(g.x, g.y, 2, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.restore();
-            });
-
-            // Draw cosmetic particles
-            particles.forEach(p => {
-                ctx.save();
-                ctx.fillStyle = p.color;
-                ctx.globalAlpha = Math.min(1, p.life / 20);
-                ctx.fillRect(p.x, p.y, 3, 3);
-                ctx.restore();
-            });
-
-            // Draw players
-            for (let pid in players) {
-                const p = players[pid];
-                if (p.hp <= 0) continue; // Dead, skip rendering
-
-                ctx.save();
-
-                // Draw Ground Slam visual trail sparks
-                if (p.isSlamming) {
-                    ctx.shadowBlur = 20;
-                    ctx.shadowColor = p.color;
-                }
-
-                // Draw dash ghost silhouette trails
-                if (p.dashTimer > 0) {
-                    ctx.globalAlpha = 0.4;
-                    ctx.fillStyle = p.color;
-                    ctx.fillRect(p.x - p.dashDir * 12, p.y, p.width, p.height);
-                    ctx.globalAlpha = 0.2;
-                    ctx.fillRect(p.x - p.dashDir * 24, p.y, p.width, p.height);
-                    ctx.globalAlpha = 1.0;
-                }
-
-                // Cyberpunk player block
-                ctx.fillStyle = p.color;
-                ctx.fillRect(p.x, p.y, p.width, p.height);
-
-                // Draw visor representing direction of aiming
-                ctx.fillStyle = '#000000';
-                ctx.fillRect(p.x + 3, p.y + 8, p.width - 6, 6);
-
-                // Add active neon glowing frames for Invincible Shield (iFrames)
-                if (p.iFrameTicks > 0) {
-                    ctx.strokeStyle = '#3b82f6';
-                    ctx.lineWidth = 3;
-                    ctx.shadowBlur = 15;
-                    ctx.shadowColor = '#3b82f6';
-                    ctx.strokeRect(p.x - 4, p.y - 4, p.width + 8, p.height + 8);
-                }
-
-                ctx.restore();
-
-                // Draw Player nameplate tags
-                ctx.fillStyle = '#ffffff';
-                ctx.font = 'bold 12px "Orbitron"';
-                ctx.textAlign = 'center';
-                ctx.fillText(p.name, p.x + p.width / 2, p.y - 18);
-
-                // Draw tiny HP progress bars above names
-                const barW = 40;
-                const barH = 4;
-                const pct = Math.max(0, p.hp / p.maxHp);
-                ctx.fillStyle = '#1f2937';
-                ctx.fillRect(p.x + p.width / 2 - barW / 2, p.y - 12, barW, barH);
-                
-                ctx.fillStyle = pct > 0.35 ? '#10b981' : '#ef4444';
-                ctx.fillRect(p.x + p.width / 2 - barW / 2, p.y - 12, barW * pct, barH);
-            }
-        }
-
-        // -------------------------------------------------------------
-        // LOCAL RESPAWN & SPECTATING MECHANISMS
-        // -------------------------------------------------------------
-        function triggerLocalRespawnCountdown() {
-            localPlayerDead = true;
-            localPlayerRespawnTime = RESPAWN_TIME;
-            respawnOverlay.classList.remove('hidden');
-            
-            sfx.playExplosion();
-
-            const interval = setInterval(() => {
-                localPlayerRespawnTime--;
-                respawnTimeText.innerText = localPlayerRespawnTime + 's';
-
-                // Render circular cooldown radial wheel
-                const offset = 251.2 * (localPlayerRespawnTime / RESPAWN_TIME);
-                respawnCircle.style.strokeDashoffset = 251.2 - offset;
-
-                if (localPlayerRespawnTime <= 0) {
-                    clearInterval(interval);
-                    respawnOverlay.classList.add('hidden');
-                    localPlayerDead = false;
-                    performArenaRespawn();
-                }
-            }, 1000);
-        }
-
-        function performArenaRespawn() {
-            const rx = 100 + Math.random() * (ARENA_WIDTH - 200);
-            const ry = 100 + Math.random() * 200;
-
-            if (isHost) {
-                // Instantly spawn local host entity back into game array
-                players['host'].x = rx;
-                players['host'].y = ry;
-                players['host'].vx = 0;
-                players['host'].vy = 0;
-                players['host'].hp = 1000;
-                players['host'].xp = 0;
-                players['host'].level = 1;
-                players['host'].maxHp = 1000;
-                players['host'].iFrameTicks = IFRAME_TIME * 60; // 2 seconds iFrames
-                
-                sfx.playPickup();
-                updateUILeaderboard();
-            } else {
-                // Client requests host updates directly via peer connections
-                const hostId = 'NS-' + roomCode;
-                const conn = connections[hostId];
-                if (conn && conn.open) {
-                    conn.send({
-                        type: 'join', // Re-register as clean player instance
-                        name: document.getElementById('clientName').value.trim() || 'CyberWarrior'
-                    });
-                }
-            }
-        }
-
-        // -------------------------------------------------------------
-        // UI INTERACTION, FORMS, AND HUD UPDATES
-        // -------------------------------------------------------------
-        function transitionToGame() {
-            mainMenu.classList.add('hidden');
-            gameScreen.classList.remove('hidden');
-        }
-
-        function resetToMenu() {
-            // Re-render clear status
-            statusText.innerText = "Disconnected";
-            statusText.className = "text-gray-400";
-            activeRoleText.innerText = "Mode: Idle";
-            roleIndicator.className = "absolute top-0 left-0 w-1.5 h-full bg-red-500";
-
-            // Reset Peer references
-            if (peer) {
-                peer.destroy();
-                peer = null;
-            }
-            connections = {};
-            players = {};
-
-            gameScreen.classList.add('hidden');
-            mainMenu.classList.remove('hidden');
-        }
-
-        function updateUILeaderboard() {
-            playerList.innerHTML = '';
-            
-            // Build temporary sorting array of active players
-            const arr = Object.values(players).sort((a,b) => b.xp - a.xp);
-            playerCount.innerText = arr.length;
-
-            arr.forEach((p, idx) => {
-                const isMe = p.id === 'host' && isHost;
-                const row = document.createElement('div');
-                row.className = "flex items-center justify-between p-2 rounded-lg bg-gray-950/80 border border-gray-800";
-                
-                row.innerHTML = `
-                    <div class="flex items-center gap-2 overflow-hidden">
-                        <span class="w-2.5 h-2.5 rounded-full" style="background-color: ${p.color}"></span>
-                        <span class="font-bold truncate text-sm ${isMe ? 'text-amber-400' : 'text-white'}">${p.name}</span>
-                        <span class="text-[10px] text-gray-500 uppercase">Lv.${p.level}</span>
-                    </div>
-                    <div class="flex items-center gap-3">
-                        <span class="orbitron text-xs text-emerald-400 font-bold">${p.xp} XP</span>
-                        ${isHost && p.id !== 'host' ? `
-                            <button onclick="kickPlayer('${p.id}')" class="bg-red-950 hover:bg-red-800 border border-red-500/40 text-red-400 text-[10px] font-bold uppercase px-2 py-0.5 rounded transition">
-                                Kick
-                            </button>
-                        ` : ''}
-                    </div>
-                `;
-                playerList.appendChild(row);
-            });
-        }
-
-        function updateClientHUD(player) {
-            // Keep track of local client updates inside variables
-            currentLevel = player.level;
-            localMaxHp = player.maxHp;
-
-            // Update Combat health systems
-            hudHpText.innerText = `${player.hp}/${player.maxHp}`;
-            const hpPct = Math.max(0, player.hp / player.maxHp);
-            hudHpBar.style.width = `${hpPct * 100}%`;
-
-            // Adjust colors of health based on crisis indicators
-            if (hpPct < 0.3) {
-                hudHpBar.className = "h-full bg-gradient-to-r from-red-600 to-red-400 rounded-full animate-pulse";
-            } else {
-                hudHpBar.className = "h-full bg-gradient-to-r from-emerald-600 to-emerald-400 rounded-full";
-            }
-
-            // XP bar progression locks
-            hudLevel.innerText = player.level;
-            
-            let xpGoal = 100;
-            let unlockGoalText = "Next Unlock: Level 2 - Air Dash";
-            if (player.level === 2) {
-                xpGoal = 250;
-                unlockGoalText = "Next Unlock: Level 3 - Ground Slam (S/Down)";
-            } else if (player.level === 3) {
-                xpGoal = 500;
-                unlockGoalText = "Next Unlock: Level 4 - Boosted Jumps";
-            } else if (player.level === 4) {
-                xpGoal = 1000;
-                unlockGoalText = "Next Unlock: Level 5 - Combat Core Boost (+500 Max HP)";
-            } else if (player.level >= 5) {
-                xpGoal = player.xp + 500;
-                unlockGoalText = "Max Level Reached! Combat Overload unlocked.";
-            }
-
-            hudXpGoalText.innerText = `${unlockGoalText} (${player.xp}/${xpGoal} XP)`;
-            const xpPct = Math.min(100, (player.xp / xpGoal) * 100);
-            hudXpBar.style.width = `${xpPct}%`;
-
-            // Rechargeable grenade status
-            if (player.grenadeCooldown <= 0) {
-                hudGrenadeIcon.className = "w-6 h-6 rounded-full bg-emerald-500/20 border border-emerald-500 flex items-center justify-center text-xs text-emerald-400 font-black animate-pulse";
-                hudGrenadeText.innerText = "READY";
-                hudGrenadeText.className = "orbitron text-xs font-bold text-emerald-400";
-            } else {
-                hudGrenadeIcon.className = "w-6 h-6 rounded-full bg-gray-800 border border-gray-700 flex items-center justify-center text-xs text-gray-500 font-semibold";
-                const secondsLeft = Math.ceil(player.grenadeCooldown / 60);
-                hudGrenadeText.innerText = `${secondsLeft}S`;
-                hudGrenadeText.className = "orbitron text-xs font-bold text-gray-400";
-            }
-
-            // Update Tech Spec Panel lists
-            unlockDash.className = player.level >= 2 ? "text-emerald-400 font-semibold flex items-center gap-1" : "text-gray-500 flex items-center gap-1";
-            unlockDash.innerText = player.level >= 2 ? "✓ Air Dash (Double Tap A/D)" : "✗ Air Dash (Lv.2)";
-
-            unlockSlam.className = player.level >= 3 ? "text-emerald-400 font-semibold flex items-center gap-1" : "text-gray-500 flex items-center gap-1";
-            unlockSlam.innerText = player.level >= 3 ? "✓ Ground Slam (S/Down in Air)" : "✗ Ground Slam (Lv.3)";
-
-            unlockHighJump.className = player.level >= 4 ? "text-emerald-400 font-semibold flex items-center gap-1" : "text-gray-500 flex items-center gap-1";
-            unlockHighJump.innerText = player.level >= 4 ? "✓ Boosted Jumps" : "✗ Boosted Jumps (Lv.4)";
-
-            unlockMaxHp.className = player.level >= 5 ? "text-emerald-400 font-semibold flex items-center gap-1" : "text-gray-500 flex items-center gap-1";
-            unlockMaxHp.innerText = player.level >= 5 ? "✓ Combat Core Boost (+500 Max HP)" : "✗ Combat Core Boost (Lv.5)";
-
-            // Handle client-side dead/spectating overlay toggles
-            if (player.hp <= 0 && !localPlayerDead) {
-                triggerLocalRespawnCountdown();
-            }
-
-            // Simple update of players panel list
-            updateUILeaderboard();
-        }
-
-        // -------------------------------------------------------------
-        // KEYBOARD & MOUSE CONTROLS LISTENERS
-        // -------------------------------------------------------------
+        const source = audioCtx.createMediaStreamSource(stream);
+        analyzer = audioCtx.createAnalyser();
+        analyzer.fftSize = 64; // Small and clean lofi bars
+        const bufferLength = analyzer.frequencyBinCount;
+        dataArray = new Uint8Array(bufferLength);
         
-        // Block Space / Arrow key defaults to prevent scrolling in frame
-        window.addEventListener('keydown', (e) => {
-            if (["Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].indexOf(e.code) > -1) {
-                e.preventDefault();
-            }
-        }, { passive: false });
+        source.connect(analyzer);
+        renderVisualizer();
+      } catch (e) {
+        console.error("Audio Context Init error: ", e);
+      }
+    }
 
-        window.addEventListener('keydown', (e) => {
-            const code = e.code;
-            if (code === 'KeyA' || code === 'ArrowLeft') {
-                inputs.left = true;
-                
-                // Directional Dash detect
-                const now = Date.now();
-                if (now - lastLeftPressTime < 250) {
-                    inputs.dashDir = -1; // Dash left command
-                }
-                lastLeftPressTime = now;
-            }
-            if (code === 'KeyD' || code === 'ArrowRight') {
-                inputs.right = true;
+    function renderVisualizer() {
+      const width = liveVizCanvas.width = liveVizCanvas.parentElement.clientWidth;
+      const height = liveVizCanvas.height = liveVizCanvas.parentElement.clientHeight;
 
-                // Directional Dash detect
-                const now = Date.now();
-                if (now - lastRightPressTime < 250) {
-                    inputs.dashDir = 1; // Dash right command
-                }
-                lastRightPressTime = now;
-            }
-            if (code === 'KeyW' || code === 'ArrowUp' || code === 'Space') {
-                inputs.up = true;
-            }
-            if (code === 'KeyS' || code === 'ArrowDown') {
-                inputs.down = true;
-            }
-            if (code === 'KeyQ') {
-                inputs.grenade = true;
-            }
+      const draw = () => {
+        if (!analyzer) return;
+        visualizerAnimId = requestAnimationFrame(draw);
+        
+        analyzer.getByteFrequencyData(dataArray);
+        vizCtx.clearRect(0, 0, width, height);
+
+        const barWidth = (width / dataArray.length) * 1.5;
+        let barHeight;
+        let x = 0;
+
+        for (let i = 0; i < dataArray.length; i++) {
+          barHeight = (dataArray[i] / 255) * height * 0.9;
+
+          const gradient = vizCtx.createLinearGradient(0, height, 0, height - barHeight);
+          gradient.addColorStop(0, '#f43f5e'); // Rose
+          gradient.addColorStop(0.5, '#f59e0b'); // Amber
+          gradient.addColorStop(1, '#ec4899'); // Pink
+
+          vizCtx.fillStyle = gradient;
+          vizCtx.fillRect(x, height - barHeight, barWidth - 3, barHeight);
+          x += barWidth;
+        }
+      };
+      draw();
+    }
+
+    // Dynamic Volume setting for Tuned-in audio element
+    let globalAudioNodeElement = null;
+    listenerVolume.addEventListener('input', (e) => {
+      const vol = parseFloat(e.target.value);
+      volumePercentage.innerText = Math.round(vol * 100) + "%";
+      if (globalAudioNodeElement) {
+        globalAudioNodeElement.volume = vol;
+      }
+    });
+
+    // Append beautiful messages to chatbox
+    function appendChatMessage(sender, message, color, isSystem = false) {
+      const msgBlock = document.createElement('div');
+      msgBlock.className = `flex items-start gap-3 p-2.5 rounded-xl transition-all ${isSystem ? 'bg-slate-950/40 border border-slate-800/30' : 'hover:bg-slate-950/20'}`;
+      
+      const cleanSender = sender.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+      const cleanMessage = message.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+      const iconLetter = cleanSender.charAt(0).toUpperCase();
+
+      msgBlock.innerHTML = `
+        <div class="w-8 h-8 rounded-xl flex items-center justify-center text-xs font-bold text-slate-950 flex-shrink-0" style="background-color: ${color}">
+          ${isSystem ? '📢' : iconLetter}
+        </div>
+        <div class="flex-grow">
+          <div class="flex items-baseline gap-2">
+            <span class="text-xs font-bold" style="color: ${isSystem ? '#fda4af' : color}">${cleanSender}</span>
+            <span class="text-[9px] text-slate-500">${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+          </div>
+          <p class="text-xs text-slate-300 leading-relaxed mt-0.5">${cleanMessage}</p>
+        </div>
+      `;
+      
+      chatMessages.appendChild(msgBlock);
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    // Trigger local chat send
+    chatForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const text = chatInput.value.trim();
+      if (!text) return;
+
+      const messageObj = {
+        type: 'CHAT',
+        sender: myNickname,
+        text: text,
+        color: myColor
+      };
+
+      // Handle message based on role
+      if (currentUserRole === 'host') {
+        // Broadcast to everyone connected
+        broadcastToPeers(messageObj);
+        appendChatMessage(myNickname, text, myColor);
+      } else {
+        // Send directly to the peer coordinator / host we are connected to
+        activeConnections.forEach(conn => {
+          if (conn.open) {
+            conn.send(messageObj);
+          }
+        });
+        // Append locally immediately
+        appendChatMessage(myNickname, text, myColor);
+      }
+
+      chatInput.value = '';
+    });
+
+    // Helper: Broadcast data payload to all connected peers (Host or Lobby Coordinator)
+    function broadcastToPeers(payload) {
+      activeConnections.forEach(conn => {
+        if (conn.open) {
+          conn.send(payload);
+        }
+      });
+    }
+
+    // Update connection indicator at top
+    function updateConnectionState(state, customLabel = "") {
+      indicatorDot.className = "w-2.5 h-2.5 rounded-full " + 
+        (state === 'online' ? 'bg-emerald-500 animate-pulse' : 
+         state === 'connecting' ? 'bg-amber-500 animate-pulse' : 'bg-slate-500');
+      indicatorText.innerText = customLabel || (state === 'online' ? 'Live connected' : 'Offline');
+    }
+
+    // Cleanup & Disconnect system fully
+    function leaveRadioSession() {
+      // Send departure message to active connections
+      if (currentUserRole === 'listener' || isLobbyCoordinator) {
+        broadcastToPeers({
+          type: 'CHAT',
+          sender: 'System',
+          text: `👋 ${myNickname} has left the desk.`,
+          color: '#ef4444'
+        });
+      }
+
+      // Stop stream tracks
+      if (localStream) {
+        localStream.getTracks().forEach(track => track.stop());
+        localStream = null;
+      }
+      
+      if (remoteStream) {
+        remoteStream.getTracks().forEach(track => track.stop());
+        remoteStream = null;
+      }
+
+      // Disconnect connections
+      activeConnections.forEach(conn => conn.close());
+      activeConnections = [];
+
+      activeCalls.forEach(call => call.close());
+      activeCalls = [];
+
+      if (peer) {
+        peer.destroy();
+        peer = null;
+      }
+
+      // Destroy HTML Audio Player node
+      if (globalAudioNodeElement) {
+        globalAudioNodeElement.pause();
+        globalAudioNodeElement.remove();
+        globalAudioNodeElement = null;
+      }
+
+      // Reset Context Visualizers
+      if (visualizerAnimId) {
+        cancelAnimationFrame(visualizerAnimId);
+      }
+      vizCtx.clearRect(0, 0, liveVizCanvas.width, liveVizCanvas.height);
+
+      // Re-enable Tab configuration
+      deckSelectionArea.classList.remove('hidden');
+      activeDashboard.classList.add('hidden');
+      receiverPlayerBlock.classList.add('hidden');
+      chatInput.disabled = true;
+      btnSendChat.disabled = true;
+      chatInput.placeholder = "Join a room to send messages...";
+
+      chatRoomHeader.innerText = "Lounge Chatroom";
+      chatRoomSubtitle.innerText = "Broadcast offline. Hangout mode active.";
+      lobbyStatusBadge.innerText = "Lounge Mode";
+      lobbyStatusBadge.className = "text-[10px] font-mono text-slate-400 bg-slate-950 px-2.5 py-1 rounded-full border border-slate-800/80";
+      chatHeaderPulse.className = "w-2.5 h-2.5 rounded-full bg-slate-500";
+
+      updateConnectionState('offline');
+      currentUserRole = null;
+      isLobbyCoordinator = false;
+
+      appendChatMessage("System", "Disconnected from room lounge.", "#94a3b8", true);
+    }
+
+    btnLeaveSession.addEventListener('click', leaveRadioSession);
+
+
+    // ==========================================
+    // HOST OPERATION CODE
+    // ==========================================
+    btnStartHosting.addEventListener('click', async () => {
+      const password = hostPassword.value.trim();
+      currentRoomId = hostRoom.value.trim().toLowerCase() || "study-lounge";
+
+      // Enforce the Bryant Reitzel rule
+      if (password !== HOST_PASSWORD) {
+        showModal(
+          "Access Denied", 
+          "Incorrect Broadcaster Password! Please try again. (Hint: The password is your requested designer's name)."
+        );
+        return;
+      }
+
+      currentUserRole = 'host';
+      myNickname = "DJ Studio Host";
+      myColor = "#fb7185"; // Premium rose host brand
+
+      updateConnectionState('connecting', 'Deploying Broadcast Node...');
+
+      try {
+        // Trigger screen/tab media capture for Loopback system audio
+        localStream = await navigator.mediaDevices.getDisplayMedia({
+          video: {
+            displaySurface: "browser", 
+          },
+          audio: {
+            echoCancellation: false,
+            noiseSuppression: false,
+            autoGainControl: false
+          },
+          systemAudio: "include"
         });
 
-        window.addEventListener('keyup', (e) => {
-            const code = e.code;
-            if (code === 'KeyA' || code === 'ArrowLeft') {
-                inputs.left = false;
-            }
-            if (code === 'KeyD' || code === 'ArrowRight') {
-                inputs.right = false;
-            }
-            if (code === 'KeyW' || code === 'ArrowUp' || code === 'Space') {
-                inputs.up = false;
-            }
-            if (code === 'KeyS' || code === 'ArrowDown') {
-                inputs.down = false;
-            }
-            if (code === 'KeyQ') {
-                inputs.grenade = false;
-            }
+        // Ensure audio was toggled correctly
+        if (localStream.getAudioTracks().length === 0) {
+          localStream.getTracks().forEach(track => track.stop());
+          localStream = null;
+          updateConnectionState('offline');
+          showModal(
+            "Loopback Audio Missing",
+            "Please make sure you checked the <strong>'Share audio'</strong> checkbox in the Chrome/browser window selection popup!"
+          );
+          return;
+        }
+
+        // Initialize PeerJS host peer with standard reliable parameters
+        // ID pattern guarantees listeners know where to seek: hw-radio-{room_id}-host
+        const hostPeerId = `hw-radio-${currentRoomId}-host`;
+        peer = new Peer(hostPeerId, {
+          debug: 1
         });
 
-        // Track local canvas mouse aiming lines
-        gameCanvas.addEventListener('mousemove', (e) => {
-            const rect = gameCanvas.getBoundingClientRect();
-            inputs.mouseX = ((e.clientX - rect.left) / rect.width) * ARENA_WIDTH;
-            inputs.mouseY = ((e.clientY - rect.top) / rect.height) * ARENA_HEIGHT;
+        peer.on('open', (id) => {
+          updateConnectionState('online', 'Broadcasting Live');
+          
+          // Switch GUI components
+          deckSelectionArea.classList.add('hidden');
+          activeDashboard.classList.remove('hidden');
+          receiverPlayerBlock.classList.add('hidden'); // Host doesn't play back their own stream
+          
+          activeLabel.innerText = "Station Host Active";
+          activeLabel.className = "text-[10px] font-bold text-amber-400 uppercase tracking-wider";
+          activeRoomName.innerText = `Room: ${currentRoomId}`;
+          txtStatusLabel.innerText = "Streaming live";
+          txtStatusLabel.className = "font-bold text-emerald-400";
+          txtPeerCount.innerText = "0";
+
+          // Chat adjustments
+          chatRoomHeader.innerText = `${currentRoomId} - Host Booth`;
+          chatRoomSubtitle.innerText = "Real-time sound streaming is operational!";
+          lobbyStatusBadge.innerText = "Broadcasting Hub";
+          lobbyStatusBadge.className = "text-[10px] font-mono text-amber-400 bg-amber-950/20 px-2.5 py-1 rounded-full border border-amber-500/25";
+          chatHeaderPulse.className = "w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse";
+          
+          chatInput.disabled = false;
+          btnSendChat.disabled = false;
+          chatInput.placeholder = "Type to communicate with tuned-in listeners...";
+
+          // Start Spectrogram visualizer locally on host loopback stream
+          initVisualizer(localStream);
+          appendChatMessage("System", `Successfully started Broadcast room '${currentRoomId}'!`, "#10b981", true);
         });
 
-        gameCanvas.addEventListener('mousedown', (e) => {
-            if (e.button === 0) { // Left click
-                inputs.shoot = true;
-            }
-            if (e.button === 2) { // Right click
-                inputs.grenade = true;
-            }
+        // If the station ID is already taken, someone else is hosting this room
+        peer.on('error', (err) => {
+          console.error("Host Peer Error: ", err);
+          updateConnectionState('offline');
+          if (err.type === 'unavailable-id') {
+            showModal(
+              "Station Already Online",
+              `The room code '<strong>${currentRoomId}</strong>' currently has an active broadcast host. Please join as a listener or choose a different room name!`
+            );
+          } else {
+            showModal("Signaling Failed", "P2P Setup failed: " + err.message);
+          }
+          leaveRadioSession();
         });
 
-        gameCanvas.addEventListener('mouseup', (e) => {
-            if (e.button === 0) {
-                inputs.shoot = false;
-            }
-            if (e.button === 2) {
-                inputs.grenade = false;
-            }
+        // Listen for incoming PeerJS Data Connections (Chat & Syncing)
+        peer.on('connection', (conn) => {
+          // Initialize listening sequence on this data link
+          setupHostDataLink(conn);
         });
 
-        // Prevent right click context menu on game canvas
-        gameCanvas.addEventListener('contextmenu', e => e.preventDefault());
+        // Respond to incoming media calls (WebRTC requires answering)
+        peer.on('call', (call) => {
+          // Answer incoming call with our captured loopback system audio
+          call.answer(localStream);
+          activeCalls.push(call);
+        });
 
-    </script>
+      } catch (err) {
+        console.error("Display share failure: ", err);
+        updateConnectionState('offline');
+        showModal("Display Access Denied", "Broadcasting aborted. System audio loopback permissions are required.");
+      }
+    });
+
+    // Host Data Channel routing
+    function setupHostDataLink(conn) {
+      conn.on('open', () => {
+        activeConnections.push(conn);
+        txtPeerCount.innerText = activeConnections.length;
+
+        // Welcome player with system message
+        const welcomeText = `💡 Peer '${conn.metadata.nickname || 'Unknown'}' tuned into station!`;
+        appendChatMessage("System", welcomeText, "#fbbf24", true);
+
+        // Tell existing listeners someone else arrived
+        broadcastToPeers({
+          type: 'CHAT',
+          sender: 'System',
+          text: welcomeText,
+          color: '#fbbf24'
+        });
+      });
+
+      conn.on('data', (data) => {
+        // Router for messaging payloads
+        if (data && data.type === 'CHAT') {
+          // Relay peer message to everyone else (including ourselves)
+          appendChatMessage(data.sender, data.text, data.color);
+          
+          // Relay message outward to other tuned-in listeners
+          broadcastToPeers({
+            type: 'CHAT',
+            sender: data.sender,
+            text: data.text,
+            color: data.color
+          });
+        }
+      });
+
+      conn.on('close', () => {
+        // Filter out closed data connection
+        activeConnections = activeConnections.filter(c => c.peer !== conn.peer);
+        txtPeerCount.innerText = activeConnections.length;
+        appendChatMessage("System", `A listener disconnected from the lounge.`, "#ef4444", true);
+      });
+    }
+
+
+    // ==========================================
+    // LISTENER / TUNE-IN OPERATION CODE
+    // ==========================================
+    btnStartListening.addEventListener('click', () => {
+      myNickname = listenerName.value.trim() || "Buddy" + Math.floor(Math.random() * 900 + 100);
+      myColor = avatarColor.value;
+      currentRoomId = listenerRoom.value.trim().toLowerCase() || "study-lounge";
+
+      currentUserRole = 'listener';
+      updateConnectionState('connecting', 'Tuning Radio Signal...');
+
+      // Build random listener Peer ID to avoid colliding
+      const listenerPeerId = `hw-radio-${currentRoomId}-listener-${makeId(6)}`;
+      
+      peer = new Peer(listenerPeerId, {
+        debug: 1
+      });
+
+      peer.on('open', (id) => {
+        // Now try connecting to the host
+        attemptToTuneIn();
+      });
+
+      peer.on('error', (err) => {
+        console.error("Listener Peer error: ", err);
+        updateConnectionState('offline');
+        showModal("P2P Error", "Could not establish listener network. Please refresh: " + err.message);
+      });
+    });
+
+    function attemptToTuneIn() {
+      const targetHostId = `hw-radio-${currentRoomId}-host`;
+      
+      // Try linking data connection to the host
+      const hostConn = peer.connect(targetHostId, {
+        metadata: { nickname: myNickname, color: myColor }
+      });
+
+      // Timeout safety check if host is offline
+      let hostResponsive = false;
+      const hostCheckTimer = setTimeout(() => {
+        if (!hostResponsive) {
+          console.warn("Host did not respond. Transitioning to lounge hangout chat-only mode.");
+          hostConn.close();
+          enterLobbyOnlyMode();
+        }
+      }, 3500);
+
+      hostConn.on('open', () => {
+        hostResponsive = true;
+        clearTimeout(hostCheckTimer);
+
+        activeConnections.push(hostConn);
+
+        // Success - connected to actual live stream!
+        updateConnectionState('online', 'Tuned In');
+        
+        deckSelectionArea.classList.add('hidden');
+        activeDashboard.classList.remove('hidden');
+        receiverPlayerBlock.classList.remove('hidden');
+
+        activeLabel.innerText = "Tuned In Live";
+        activeLabel.className = "text-[10px] font-bold text-emerald-400 uppercase tracking-wider";
+        activeRoomName.innerText = `Room: ${currentRoomId}`;
+        txtStatusLabel.innerText = "Live Audio Streaming";
+        txtStatusLabel.className = "font-bold text-emerald-400";
+        txtPeerCount.innerText = "Active Feed";
+
+        chatRoomHeader.innerText = `${currentRoomId} Lounge`;
+        chatRoomSubtitle.innerText = "Tuned in live with custom audio streaming.";
+        lobbyStatusBadge.innerText = "Live Station";
+        lobbyStatusBadge.className = "text-[10px] font-mono text-emerald-400 bg-emerald-950/20 px-2.5 py-1 rounded-full border border-emerald-500/25";
+        chatHeaderPulse.className = "w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse";
+
+        chatInput.disabled = false;
+        btnSendChat.disabled = false;
+        chatInput.placeholder = "Say hi to the stream room...";
+
+        appendChatMessage("System", `Tuned into live host '${currentRoomId}'! Requesting stream feed...`, "#10b981", true);
+
+        // Initiate P2P direct call to request stream feed
+        const call = peer.call(targetHostId, null); 
+        setupIncomingMedia(call);
+      });
+
+      hostConn.on('data', (data) => {
+        if (data && data.type === 'CHAT') {
+          appendChatMessage(data.sender, data.text, data.color, data.sender === 'System');
+        }
+      });
+
+      hostConn.on('close', () => {
+        appendChatMessage("System", "Host broadcast connection closed.", "#f43f5e", true);
+        // Fall back gracefully to lounge chat lobby
+        leaveRadioSession();
+      });
+    }
+
+    // Handles playing back the WebRTC audio feed and piping it to visualizer
+    function setupIncomingMedia(call) {
+      call.on('stream', (stream) => {
+        // Create dynamic audio player DOM node
+        if (globalAudioNodeElement) {
+          globalAudioNodeElement.pause();
+          globalAudioNodeElement.remove();
+        }
+
+        remoteStream = stream;
+        globalAudioNodeElement = document.createElement('audio');
+        globalAudioNodeElement.srcObject = stream;
+        globalAudioNodeElement.autoplay = true;
+        globalAudioNodeElement.volume = parseFloat(listenerVolume.value);
+        document.body.appendChild(globalAudioNodeElement);
+
+        // Initialize visualizer on listener's screen
+        initVisualizer(stream);
+      });
+
+      call.on('close', () => {
+        if (globalAudioNodeElement) {
+          globalAudioNodeElement.pause();
+          globalAudioNodeElement.remove();
+          globalAudioNodeElement = null;
+        }
+      });
+    }
+
+
+    // ==========================================
+    // LOBBY/LOUNGE FALLBACK CODE (No active host)
+    // ==========================================
+    function enterLobbyOnlyMode() {
+      // Clean previous connections
+      activeConnections.forEach(c => c.close());
+      activeConnections = [];
+
+      appendChatMessage("System", "📻 Host offline. Setting up study lounge chat mode...", "#f59e0b", true);
+
+      // We attempt to find an existing lounge coordinator in this room: hw-radio-{room_id}-lobby
+      const coordinateId = `hw-radio-${currentRoomId}-lobby`;
+
+      // Attempt to register our Peer Node as the lobby coordinator!
+      // If someone has already registered it, we fail 'unavailable-id' and then connect as a client.
+      peer.destroy(); // Clear existing temporary peer ID
+
+      // Create a deterministic lobby ID so other listeners aggregate here
+      const checkLobbyId = `hw-radio-${currentRoomId}-lobby`;
+      
+      peer = new Peer(checkLobbyId, {
+        debug: 1
+      });
+
+      peer.on('open', (id) => {
+        // We successfully grabbed the coordinator slot! We are the room chat leader.
+        isLobbyCoordinator = true;
+        mountLobbyInterface();
+        appendChatMessage("System", "✨ You are the lounge coordinator for this room.", "#34d399", true);
+      });
+
+      peer.on('error', (err) => {
+        if (err.type === 'unavailable-id') {
+          // Lobby is already managed by someone else! Create a normal client peer and connect to it.
+          const followerPeerId = `hw-radio-${currentRoomId}-lounge-listener-${makeId(6)}`;
+          peer = new Peer(followerPeerId, { debug: 1 });
+
+          peer.on('open', () => {
+            const coordConn = peer.connect(checkLobbyId, {
+              metadata: { nickname: myNickname, color: myColor }
+            });
+
+            coordConn.on('open', () => {
+              activeConnections.push(coordConn);
+              mountLobbyInterface(false);
+              appendChatMessage("System", "Connected to lounge study lounge!", "#60a5fa", true);
+            });
+
+            coordConn.on('data', (data) => {
+              if (data && data.type === 'CHAT') {
+                appendChatMessage(data.sender, data.text, data.color, data.sender === 'System');
+              }
+            });
+
+            coordConn.on('close', () => {
+              appendChatMessage("System", "Lounge coordinator disconnected. Re-synchronizing...", "#f43f5e", true);
+              enterLobbyOnlyMode(); // Auto-heal lobby slot
+            });
+          });
+        } else {
+          showModal("Lounge Error", "Could not coordinate peer lounge: " + err.message);
+        }
+      });
+
+      // Coordinator specific listener handlers
+      peer.on('connection', (conn) => {
+        if (isLobbyCoordinator) {
+          setupHostDataLink(conn); // Coordinator behaves similar to host for text chat relaying
+        }
+      });
+    }
+
+    function mountLobbyInterface(isLeader = true) {
+      updateConnectionState('online', 'Lounge Active');
+
+      deckSelectionArea.classList.add('hidden');
+      activeDashboard.classList.remove('hidden');
+      receiverPlayerBlock.classList.add('hidden'); // No stream to play
+
+      activeLabel.innerText = "Lounge Chat Active";
+      activeLabel.className = "text-[10px] font-bold text-amber-400 uppercase tracking-wider";
+      activeRoomName.innerText = `Room: ${currentRoomId}`;
+      txtStatusLabel.innerText = isLeader ? "Hosting Study Room" : "Study Room Lounge";
+      txtStatusLabel.className = "font-bold text-amber-400";
+      txtPeerCount.innerText = isLeader ? activeConnections.length : "Connected";
+
+      chatRoomHeader.innerText = `${currentRoomId} - Study Lounge`;
+      chatRoomSubtitle.innerText = "No stream is broadcasted. Use chat to connect!";
+      lobbyStatusBadge.innerText = "Lounge Offline";
+      lobbyStatusBadge.className = "text-[10px] font-mono text-slate-400 bg-slate-950 px-2.5 py-1 rounded-full border border-slate-800/85";
+      chatHeaderPulse.className = "w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse";
+
+      chatInput.disabled = false;
+      btnSendChat.disabled = false;
+      chatInput.placeholder = "Talk to study buddies in this room...";
+    }
+
+  </script>
 </body>
 </html>
