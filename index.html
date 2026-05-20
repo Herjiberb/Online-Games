@@ -3,557 +3,433 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Arena Platformer Shooter</title>
+    <title>WebRTC Arena Shooter</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
+    <script src="https://unpkg.com/peerjs@1.5.1/dist/peerjs.min.js"></script>
     <style>
-        body, html { margin: 0; padding: 0; overflow: hidden; background-color: #1a202c; color: white; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        #gameCanvas { display: block; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background-color: #1a202c; color: white; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        #game-canvas { display: block; width: 100%; height: 100%; background-color: #2d3748; }
         .hidden { display: none !important; }
+        .ui-panel { background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; }
         
-        /* Custom scrollbar for host panel */
+        /* Custom Scrollbar for Player List */
         ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: #2d3748; }
-        ::-webkit-scrollbar-thumb { background: #4a5568; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #718096; }
+        ::-webkit-scrollbar-track { background: rgba(0,0,0,0.1); }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.4); }
     </style>
 </head>
-<body>
+<body class="text-white select-none">
 
-    <!-- Main Menu -->
-    <div id="main-menu" class="absolute inset-0 flex flex-col items-center justify-center bg-gray-900 z-50">
-        <h1 class="text-6xl font-black mb-2 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-600">ARENA BRAWL</h1>
-        <p class="mb-8 text-gray-400">Multiplayer 2D Platformer Shooter</p>
+    <!-- CANVAS -->
+    <canvas id="game-canvas" class="hidden"></canvas>
+
+    <!-- MAIN MENU -->
+    <div id="main-menu" class="absolute inset-0 flex items-center justify-center bg-gray-900 z-50">
+        <div class="ui-panel p-8 max-w-md w-full flex flex-col items-center shadow-2xl">
+            <h1 class="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500 mb-2">ARENA BRAWL</h1>
+            <p class="text-gray-400 mb-8 text-sm">WebRTC P2P Multiplayer Shooter</p>
+
+            <div class="w-full mb-6">
+                <label class="block text-sm font-medium text-gray-300 mb-1">Player Name</label>
+                <input type="text" id="player-name" maxlength="15" placeholder="Enter your name" class="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg focus:outline-none focus:border-blue-500 text-white placeholder-gray-500">
+            </div>
+
+            <button id="btn-host-menu" class="w-full py-3 bg-blue-600 hover:bg-blue-500 rounded-lg font-bold transition mb-4 shadow-lg shadow-blue-500/20">Host New Game</button>
+            
+            <div class="flex items-center w-full mb-4">
+                <hr class="flex-grow border-gray-700">
+                <span class="px-3 text-gray-500 text-sm">OR</span>
+                <hr class="flex-grow border-gray-700">
+            </div>
+
+            <div class="w-full flex gap-2">
+                <input type="text" id="join-code" placeholder="Enter Room Code" class="flex-grow px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg focus:outline-none focus:border-purple-500 text-white placeholder-gray-500 uppercase">
+                <button id="btn-join" class="px-6 py-3 bg-purple-600 hover:bg-purple-500 rounded-lg font-bold transition shadow-lg shadow-purple-500/20">Join</button>
+            </div>
+            <p id="menu-error" class="text-red-400 text-sm mt-4 hidden"></p>
+        </div>
+    </div>
+
+    <!-- HUD OVERLAY (For Players) -->
+    <div id="hud-overlay" class="absolute inset-0 pointer-events-none hidden z-30">
+        <div class="absolute bottom-6 left-6 right-6 flex justify-between items-end">
+            <div class="flex flex-col gap-2 pointer-events-auto">
+                <div class="text-2xl font-bold bg-black/50 px-4 py-2 rounded-lg">
+                    <span id="hud-hp" class="text-green-400">1000</span> <span class="text-gray-400 text-sm">/ <span id="hud-maxhp">1000</span> HP</span>
+                </div>
+                <div class="text-xl font-bold bg-black/50 px-4 py-2 rounded-lg">
+                    <span id="hud-xp" class="text-yellow-400">0</span> <span class="text-gray-400 text-sm">XP</span>
+                </div>
+                <div id="hud-unlocks" class="text-sm text-blue-300 bg-black/50 px-4 py-2 rounded-lg max-w-xs">
+                    Unlocks: None
+                </div>
+            </div>
+            
+            <div class="flex gap-4 pointer-events-auto">
+                <div class="bg-black/50 p-3 rounded-lg text-center w-24">
+                    <div class="text-gray-400 text-xs mb-1">GRENADE (Right Click)</div>
+                    <div class="h-2 bg-gray-700 rounded overflow-hidden">
+                        <div id="hud-grenade-cd" class="h-full bg-orange-500 w-full transition-all duration-100"></div>
+                    </div>
+                </div>
+                <div class="bg-black/50 p-3 rounded-lg text-center w-24">
+                    <div class="text-gray-400 text-xs mb-1">DASH (Double Tap)</div>
+                    <div class="h-2 bg-gray-700 rounded overflow-hidden">
+                        <div id="hud-dash-cd" class="h-full bg-cyan-400 w-full transition-all duration-100"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="respawn-overlay" class="absolute inset-0 bg-red-900/40 backdrop-blur-sm flex flex-col items-center justify-center hidden">
+            <h2 class="text-5xl font-black text-white mb-4 drop-shadow-lg">YOU DIED</h2>
+            <p class="text-2xl text-gray-200 font-bold">Respawning in <span id="respawn-timer" class="text-yellow-400">15</span>s</p>
+        </div>
+    </div>
+
+    <!-- HOST DASHBOARD -->
+    <div id="host-dashboard" class="absolute top-4 right-4 w-80 ui-panel p-4 hidden z-40 max-h-[90vh] flex flex-col">
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-lg font-bold text-blue-400">Host Dashboard</h2>
+            <button id="btn-host-toggle-play" class="text-xs bg-gray-700 hover:bg-gray-600 px-3 py-1 rounded transition">Play</button>
+        </div>
         
-        <div class="bg-gray-800 p-8 rounded-xl shadow-2xl w-96 max-w-full">
-            <input type="text" id="playerName" maxlength="15" placeholder="Enter your name" class="w-full px-4 py-3 rounded bg-gray-700 text-white mb-4 outline-none focus:ring-2 focus:ring-blue-500">
+        <div class="bg-black/40 p-3 rounded-lg mb-4 text-center cursor-pointer hover:bg-black/60 transition" onclick="copyCode()" title="Click to copy">
+            <div class="text-gray-400 text-xs uppercase tracking-wider mb-1">Room Code</div>
+            <div id="host-room-code" class="text-2xl font-mono font-bold tracking-widest text-white">...</div>
+        </div>
+
+        <h3 class="text-sm font-semibold text-gray-400 border-b border-gray-700 pb-2 mb-2">Players (<span id="player-count">0</span>)</h3>
+        <div id="player-list" class="flex-grow overflow-y-auto space-y-2">
+            <!-- Player rows go here -->
+        </div>
+    </div>
+
+    <!-- CHEATS MODAL (Host only) -->
+    <div id="cheats-modal" class="absolute inset-0 bg-black/60 flex items-center justify-center hidden z-50">
+        <div class="ui-panel p-6 max-w-sm w-full">
+            <h2 class="text-xl font-bold mb-4">OP Panel: <span id="cheat-target-name" class="text-purple-400">Player</span></h2>
             
-            <button id="btn-host" class="w-full py-3 bg-blue-600 hover:bg-blue-700 font-bold rounded mb-4 transition-colors">Create Hosted World</button>
-            
-            <div class="flex items-center mb-4">
-                <hr class="flex-grow border-gray-600">
-                <span class="px-3 text-gray-400 text-sm">OR</span>
-                <hr class="flex-grow border-gray-600">
+            <div class="space-y-4 mb-6">
+                <label class="flex items-center space-x-3 cursor-pointer">
+                    <input type="checkbox" id="cheat-god" class="w-5 h-5 rounded text-purple-500 focus:ring-purple-500 bg-gray-700 border-gray-600">
+                    <span class="text-gray-200">God Mode (Immunity)</span>
+                </label>
+                <label class="flex items-center space-x-3 cursor-pointer">
+                    <input type="checkbox" id="cheat-shotgun" class="w-5 h-5 rounded text-purple-500 focus:ring-purple-500 bg-gray-700 border-gray-600">
+                    <span class="text-gray-200">Shotgun Blast (10x projectiles)</span>
+                </label>
+                <label class="flex items-center space-x-3 cursor-pointer">
+                    <input type="checkbox" id="cheat-grenadier" class="w-5 h-5 rounded text-purple-500 focus:ring-purple-500 bg-gray-700 border-gray-600">
+                    <span class="text-gray-200">Grenadier (No Cooldown)</span>
+                </label>
             </div>
-            
-            <div class="flex gap-2">
-                <input type="text" id="joinCode" placeholder="World Code" class="flex-grow px-4 py-3 rounded bg-gray-700 text-white outline-none focus:ring-2 focus:ring-purple-500 uppercase">
-                <button id="btn-join" class="px-6 py-3 bg-purple-600 hover:bg-purple-700 font-bold rounded transition-colors">Join</button>
-            </div>
-            
-            <div id="connection-status" class="mt-4 text-center text-sm font-semibold text-yellow-400"></div>
-        </div>
 
-        <div class="mt-8 text-gray-500 text-sm text-center max-w-lg">
-            Controls: W/A/S/D or Arrows to Move & Jump (Double Jump supported).<br>
-            Left Click: Shoot | Right Click / G: Grenade<br>
-            Unlocks: Health(200 XP), High Jump(500 XP), Dash(1000 XP), Pound(2000 XP)
-        </div>
-    </div>
-
-    <!-- Death Screen -->
-    <div id="death-screen" class="hidden absolute inset-0 flex flex-col items-center justify-center bg-black/80 z-40">
-        <h2 class="text-6xl font-bold text-red-500 mb-4">WASTED</h2>
-        <p class="text-xl">Respawning in <span id="respawn-timer" class="font-bold text-white">15</span> seconds...</p>
-    </div>
-
-    <!-- HUD -->
-    <div id="hud" class="hidden absolute top-4 left-4 z-30 pointer-events-none">
-        <div class="bg-gray-900/80 p-4 rounded-lg shadow-lg border border-gray-700">
-            <h3 id="hud-name" class="font-bold text-lg text-blue-400">Player</h3>
-            <div class="w-48 h-4 bg-red-900 rounded mt-2 overflow-hidden relative">
-                <div id="hud-hp" class="h-full bg-red-500" style="width: 100%"></div>
-                <span id="hud-hp-text" class="absolute inset-0 flex items-center justify-center text-xs font-bold shadow-sm">1000/1000</span>
-            </div>
-            <div class="w-48 h-3 bg-yellow-900 rounded mt-2 overflow-hidden relative">
-                <div id="hud-xp" class="h-full bg-yellow-500" style="width: 0%"></div>
-                <span id="hud-xp-text" class="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-black">0 XP</span>
-            </div>
-            <div class="mt-3 text-sm font-semibold text-gray-300">
-                Grenade: <span id="hud-grenade" class="text-green-400">READY</span>
-            </div>
-            <div class="mt-1 text-xs text-gray-400" id="hud-unlocks">
-                <!-- Unlocks populated here -->
+            <div class="flex justify-end gap-2">
+                <button id="btn-close-cheats" class="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded">Close</button>
             </div>
         </div>
     </div>
-
-    <!-- Host Code Display -->
-    <div id="host-code-display" class="hidden absolute top-4 right-4 z-30 bg-blue-900/90 px-4 py-2 rounded shadow-lg border border-blue-500 flex flex-col items-end">
-        <div class="text-xs text-blue-300">World Code</div>
-        <div class="text-2xl font-mono font-bold tracking-wider select-all" id="display-code">...</div>
-        <button id="btn-toggle-host-panel" class="mt-2 text-xs bg-blue-600 hover:bg-blue-500 px-2 py-1 rounded">Open Host Panel</button>
-    </div>
-
-    <!-- Host Control Panel -->
-    <div id="host-panel" class="hidden absolute top-16 right-4 w-80 bg-gray-800/95 border border-gray-600 rounded-lg shadow-2xl z-40 flex flex-col max-h-[80vh]">
-        <div class="p-3 border-b border-gray-700 flex justify-between items-center">
-            <h3 class="font-bold text-lg text-blue-400">Host Controls</h3>
-            <button id="btn-close-host-panel" class="text-gray-400 hover:text-white">&times;</button>
-        </div>
-        <div class="p-3 border-b border-gray-700 bg-gray-900/50">
-            <label class="flex items-center space-x-2 cursor-pointer">
-                <input type="checkbox" id="toggle-spectate" class="form-checkbox text-blue-500 rounded">
-                <span class="text-sm font-medium">Spectator Mode (Host doesn't play)</span>
-            </label>
-        </div>
-        <div class="p-3 flex-grow overflow-y-auto" id="host-player-list">
-            <!-- Dynamic player entries -->
-        </div>
-    </div>
-
-    <canvas id="gameCanvas"></canvas>
 
 <script>
-/**
- * CORE CONSTANTS & SETTINGS
- */
-const WORLD_WIDTH = 4000;
-const WORLD_HEIGHT = 2500;
-const GRAVITY = 0.6;
-const FRICTION = 0.8;
-const MAX_FALL_SPEED = 15;
-const POUND_SPEED = 25;
-
-const CANVAS = document.getElementById('gameCanvas');
-const CTX = CANVAS.getContext('2d');
-let cw = window.innerWidth;
-let ch = window.innerHeight;
-CANVAS.width = cw; CANVAS.height = ch;
-
-window.addEventListener('resize', () => {
-    cw = window.innerWidth;
-    ch = window.innerHeight;
-    CANVAS.width = cw; CANVAS.height = ch;
-});
-
-/**
- * UTILITIES
- */
-function randomString(length) {
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-    let result = '';
-    for (let i = 0; i < length; i++) result += chars.charAt(Math.floor(Math.random() * chars.length));
-    return result;
+// --- UTILS & CONSTANTS ---
+const ID_PREFIX = "BRAWL-";
+function generateRoomCode() { return ID_PREFIX + Math.random().toString(36).substring(2, 8).toUpperCase(); }
+function copyCode() { 
+    navigator.clipboard.writeText(document.getElementById('host-room-code').innerText);
+    alert("Code copied to clipboard!");
 }
 
-function rectIntersect(r1, r2) {
-    return !(r2.x > r1.x + r1.w || 
-             r2.x + r2.w < r1.x || 
-             r2.y > r1.y + r1.h ||
-             r2.y + r2.h < r1.y);
-}
-
-function distance(x1, y1, x2, y2) {
-    return Math.hypot(x2 - x1, y2 - y1);
-}
-
-/**
- * GAME STATE
- */
-const state = {
-    players: {}, // id -> Player object
-    projectiles: [],
-    drops: [],
-    platforms: [],
-    spawns: [],
-    particles: []
+// XP Thresholds
+const UNLOCKS = {
+    DASH: 200,
+    POUND: 500,
+    HIGH_JUMP: 1000,
+    HP_BOOST_INTERVAL: 500 // Every 500 XP = +100 Max HP
 };
 
-// Map Generation
-function generateMap() {
-    state.platforms = [];
-    state.spawns = [];
-    
-    // Boundaries
-    state.platforms.push({x: -100, y: 0, w: 100, h: WORLD_HEIGHT}); // Left
-    state.platforms.push({x: WORLD_WIDTH, y: 0, w: 100, h: WORLD_HEIGHT}); // Right
-    state.platforms.push({x: 0, y: -100, w: WORLD_WIDTH, h: 100}); // Top (ceiling)
-    state.platforms.push({x: 0, y: WORLD_HEIGHT - 50, w: WORLD_WIDTH, h: 100}); // Floor
-    
-    // Floor spawns
-    for(let i=100; i<WORLD_WIDTH-100; i+= 400) state.spawns.push({x: i, y: WORLD_HEIGHT - 100});
+// Map Definition (Super Big)
+const MAP_W = 4000;
+const MAP_H = 3000;
+const PLATFORMS = [
+    // Borders
+    { x: -50, y: 0, w: 50, h: MAP_H },
+    { x: MAP_W, y: 0, w: 50, h: MAP_H },
+    { x: 0, y: -50, w: MAP_W, h: 50 },
+    { x: 0, y: MAP_H - 100, w: MAP_W, h: 200 }, // Ground
 
-    // Random platforms
-    const platCount = 40;
-    for (let i = 0; i < platCount; i++) {
-        let pw = Math.random() * 300 + 100;
-        let ph = 20;
-        let px = Math.random() * (WORLD_WIDTH - pw);
-        let py = Math.random() * (WORLD_HEIGHT - 300) + 100;
-        state.platforms.push({x: px, y: py, w: pw, h: ph});
-        
-        if (Math.random() > 0.5) {
-            state.spawns.push({x: px + pw/2, y: py - 50});
-        }
-    }
-}
+    // Center Main Hub
+    { x: 1500, y: 2400, w: 1000, h: 40 },
+    { x: 1700, y: 2000, w: 600, h: 40 },
+    { x: 1900, y: 1600, w: 200, h: 40 },
 
-function getRandomSpawn() {
-    return state.spawns[Math.floor(Math.random() * state.spawns.length)];
-}
+    // Left Side Platforms
+    { x: 400, y: 2500, w: 400, h: 40 },
+    { x: 200, y: 2100, w: 400, h: 40 },
+    { x: 600, y: 1700, w: 400, h: 40 },
+    { x: 100, y: 1300, w: 300, h: 40 },
+    { x: 800, y: 1000, w: 400, h: 40 },
 
-/**
- * CLASSES
- */
-class Player {
-    constructor(id, name, isHost=false) {
+    // Right Side Platforms
+    { x: 3200, y: 2500, w: 400, h: 40 },
+    { x: 3400, y: 2100, w: 400, h: 40 },
+    { x: 3000, y: 1700, w: 400, h: 40 },
+    { x: 3600, y: 1300, w: 300, h: 40 },
+    { x: 2800, y: 1000, w: 400, h: 40 },
+
+    // Top scattered
+    { x: 1500, y: 1200, w: 200, h: 40 },
+    { x: 2300, y: 1200, w: 200, h: 40 },
+    { x: 1900, y: 800, w: 200, h: 40 },
+];
+
+const SPAWNS = [
+    {x: 200, y: 2800}, {x: 3800, y: 2800}, {x: 2000, y: 2300}, 
+    {x: 400, y: 1900}, {x: 3600, y: 1900}, {x: 2000, y: 1500},
+    {x: 250, y: 1100}, {x: 3750, y: 1100}, {x: 2000, y: 700}
+];
+
+// --- GLOBALS ---
+let peer = null;
+let isHost = false;
+let hostPlaying = false; // Host can spectate or play
+let myId = null;
+let myName = "";
+let currentCode = "";
+let connections = {}; // Host: stores active DataConnections
+
+let keys = { w:false, a:false, s:false, d:false };
+let mouse = { x: 0, y: 0, screenX: 0, screenY: 0, left: false, right: false };
+let camera = { x: 0, y: 0 };
+let localState = { players: {}, bullets: [], grenades: [], drops: [] };
+let lastDashTimes = { left: 0, right: 0 };
+let renderState = {}; // For interpolation
+
+const P_W = 40, P_H = 60; // Player dimensions
+
+// --- HOST LOGIC & CLASSES (Authoritative) ---
+class HostPlayer {
+    constructor(id, name) {
         this.id = id;
         this.name = name;
-        this.isHost = isHost;
-        
-        let spawn = getRandomSpawn();
+        this.color = `hsl(${Math.random()*360}, 80%, 60%)`;
+        this.width = P_W;
+        this.height = P_H;
+        this.reset();
+        this.cheats = { god: false, shotgun: false, grenadier: false };
+        this.keys = {};
+        this.mouseAngle = 0;
+        this.clicking = false;
+        this.rClicking = false;
+    }
+
+    reset() {
+        let spawn = SPAWNS[Math.floor(Math.random() * SPAWNS.length)];
         this.x = spawn.x;
-        this.y = spawn.y;
-        this.w = 30;
-        this.h = 50;
+        this.y = spawn.y - 100;
         this.vx = 0;
         this.vy = 0;
-        this.onGround = false;
-        
         this.baseMaxHp = 1000;
-        this.maxHp = 1000;
         this.hp = 1000;
         this.xp = 0;
-        
-        this.state = 'alive'; // alive, dead
-        this.deathTime = 0;
-        this.iFramesUntil = Date.now() + 2000; // 2 seconds spawn protection
-        
-        // Abilities
-        this.jumpsLeft = 2;
+        this.jumps = 2;
+        this.grounded = false;
         this.dashCooldown = 0;
-        this.grenadeCooldown = 0;
         this.shootCooldown = 0;
+        this.grenadeCooldown = 0;
         this.isPounding = false;
-        
-        // Cheats
-        this.godMode = false;
-        this.shotgun = false;
-        this.grenadier = false;
-        this.spectating = false;
-
-        this.color = `hsl(${Math.random() * 360}, 80%, 60%)`;
-        this.inputs = { up: false, down: false, left: false, right: false, mouseAngle: 0, click: false, grenade: false, dash: 0 };
+        this.iFrames = 2000; // 2 seconds iFrames on spawn
+        this.deadTimer = 0; // 0 = alive
+        this.updateStats();
     }
 
-    get hasHealthBoost() { return this.xp >= 200; }
-    get hasHighJump() { return this.xp >= 500; }
-    get hasDash() { return this.xp >= 1000; }
-    get hasPound() { return this.xp >= 2000; }
-
-    update() {
-        if (this.spectating) return;
-        if (this.state === 'dead') {
-            if (Date.now() - this.deathTime > 15000) {
-                this.respawn();
-            }
-            return;
-        }
-
-        // Apply XP modifiers
-        this.maxHp = this.hasHealthBoost ? 1500 : 1000;
-        const jumpPower = this.hasHighJump ? -14 : -11;
-        const moveSpeed = 6;
-
-        // Input application
-        if (this.inputs.left) this.vx -= 1.5;
-        if (this.inputs.right) this.vx += 1.5;
-
-        // Friction and speed cap
-        this.vx *= FRICTION;
-        if (Math.abs(this.vx) > moveSpeed && !this.isPounding) {
-            this.vx = Math.sign(this.vx) * moveSpeed;
-        }
-
-        // Dash logic (handled via input burst)
-        if (this.hasDash && this.inputs.dash !== 0 && Date.now() > this.dashCooldown) {
-            this.vx = this.inputs.dash * 25;
-            this.dashCooldown = Date.now() + 1500;
-            this.inputs.dash = 0; // consume
-        }
-
-        // Jump
-        if (this.inputs.up) {
-            if (this.onGround) {
-                this.vy = jumpPower;
-                this.onGround = false;
-                this.jumpsLeft = 1;
-            } else if (this.jumpsLeft > 0 && this.vy > -2) {
-                // Allow double jump slightly after peak or falling
-                this.vy = jumpPower * 0.9;
-                this.jumpsLeft--;
-                this.inputs.up = false; // require re-press
-            }
-            this.inputs.up = false; // consume
-        }
-
-        // Pound
-        if (this.hasPound && this.inputs.down && !this.onGround && !this.isPounding) {
-            this.isPounding = true;
-            this.vy = POUND_SPEED;
-            this.vx = 0;
-        }
-
-        // Gravity
-        if (!this.isPounding) {
-            this.vy += GRAVITY;
-            if (this.vy > MAX_FALL_SPEED) this.vy = MAX_FALL_SPEED;
-        }
-
-        // X Collision
-        this.x += this.vx;
-        for (let p of state.platforms) {
-            if (rectIntersect(this, p)) {
-                if (this.vx > 0) this.x = p.x - this.w;
-                else if (this.vx < 0) this.x = p.x + p.w;
-                this.vx = 0;
-            }
-        }
-
-        // Y Collision
-        this.y += this.vy;
-        this.onGround = false;
-        for (let p of state.platforms) {
-            if (rectIntersect(this, p)) {
-                if (this.vy > 0) {
-                    this.y = p.y - this.h;
-                    this.onGround = true;
-                    this.jumpsLeft = 2; // Reset jumps
-                    
-                    // Trigger Pound Splash
-                    if (this.isPounding) {
-                        this.triggerPoundSplash();
-                        this.isPounding = false;
-                    }
-                } else if (this.vy < 0) {
-                    this.y = p.y + p.h;
-                }
-                this.vy = 0;
-            }
-        }
-        
-        // Cooldown ticks
-        const now = Date.now();
-        const isInvulnerable = now < this.iFramesUntil;
-
-        // Attacking (Cannot attack during iFrames)
-        if (!isInvulnerable) {
-            // Shooting
-            if (this.inputs.click && now > this.shootCooldown) {
-                this.shootCooldown = now + 300; // 300ms cooldown
-                this.fireBullet(this.inputs.mouseAngle);
-                this.inputs.click = false; // consume
-            }
-
-            // Grenade
-            if (this.inputs.grenade && (now > this.grenadeCooldown || this.grenadier)) {
-                this.grenadeCooldown = now + 5000; // 5s recharge
-                this.throwGrenade(this.inputs.mouseAngle);
-                this.inputs.grenade = false; // consume
-            }
-        }
-    }
-
-    fireBullet(angle) {
-        const speed = 18;
-        const count = this.shotgun ? 10 : 1;
-        for(let i=0; i<count; i++) {
-            let offsetAngle = angle;
-            if (this.shotgun) offsetAngle += (Math.random() - 0.5) * 0.5;
-            state.projectiles.push(new Projectile(
-                this.x + this.w/2, this.y + this.h/2,
-                Math.cos(offsetAngle) * speed, Math.sin(offsetAngle) * speed,
-                this.id, 'bullet'
-            ));
-        }
-    }
-
-    throwGrenade(angle) {
-        const speed = 12;
-        state.projectiles.push(new Projectile(
-            this.x + this.w/2, this.y + this.h/2,
-            Math.cos(angle) * speed, Math.sin(angle) * speed - 2, // Slight upward arc
-            this.id, 'grenade'
-        ));
-    }
-
-    triggerPoundSplash() {
-        // Create an invisible explosion logic
-        const radius = 200;
-        const damage = 400;
-        state.particles.push({x: this.x+this.w/2, y: this.y+this.h, r: radius, life: 10, maxLife: 10, type: 'pound'});
-        
-        for (let pid in state.players) {
-            if (pid === this.id) continue;
-            let target = state.players[pid];
-            if (target.state !== 'alive') continue;
-            
-            let dist = distance(this.x+this.w/2, this.y+this.h, target.x+target.w/2, target.y+target.h/2);
-            if (dist < radius) {
-                target.takeDamage(damage, this.id);
-            }
-        }
-    }
-
-    takeDamage(amount, sourceId) {
-        if (this.godMode || Date.now() < this.iFramesUntil || this.state !== 'alive' || this.spectating) return;
-        this.hp -= amount;
-        if (this.hp <= 0) this.die(sourceId);
+    updateStats() {
+        let bonusHp = Math.floor(this.xp / UNLOCKS.HP_BOOST_INTERVAL) * 100;
+        this.maxHp = this.baseMaxHp + bonusHp;
+        if(this.hp > this.maxHp) this.hp = this.maxHp;
+        this.canDash = this.xp >= UNLOCKS.DASH;
+        this.canPound = this.xp >= UNLOCKS.POUND;
+        this.highJump = this.xp >= UNLOCKS.HIGH_JUMP;
     }
 
     die(killerId) {
-        this.state = 'dead';
-        this.deathTime = Date.now();
+        if(this.deadTimer > 0) return;
+        this.deadTimer = 15000; // 15 seconds
+        
+        // Drop XP and Life
+        hostState.drops.push(new HostDrop(this.x, this.y, this.xp + 100)); // All their XP + 100 base
+        
+        // Optional: Notify
         this.hp = 0;
-        
-        // Drop XP and Health
-        if (this.xp > 0) {
-            state.drops.push(new Drop(this.x + this.w/2, this.y, 'xp', this.xp));
-        }
-        state.drops.push(new Drop(this.x + this.w/2, this.y - 20, 'health', 300));
-        
-        // Spawn death particles
-        for(let i=0; i<20; i++) {
-            state.particles.push({
-                x: this.x + this.w/2, y: this.y + this.h/2,
-                vx: (Math.random()-0.5)*10, vy: (Math.random()-0.5)*10,
-                life: 30, maxLife: 30, type: 'blood'
-            });
-        }
+        this.xp = 0;
     }
 
-    respawn() {
-        let spawn = getRandomSpawn();
-        this.x = spawn.x;
-        this.y = spawn.y;
-        this.vx = 0;
-        this.vy = 0;
-        this.xp = 0; // Reset XP
-        this.maxHp = this.baseMaxHp;
-        this.hp = this.maxHp;
-        this.state = 'alive';
-        this.iFramesUntil = Date.now() + 2000;
-    }
-}
-
-class Projectile {
-    constructor(x, y, vx, vy, ownerId, type) {
-        this.x = x; this.y = y;
-        this.vx = vx; this.vy = vy;
-        this.ownerId = ownerId;
-        this.type = type; // bullet, grenade
-        this.lifeTime = type === 'grenade' ? 120 : 60; // frames
-        this.w = type === 'grenade' ? 10 : 4;
-        this.h = type === 'grenade' ? 10 : 4;
-        this.dead = false;
-    }
-
-    update() {
-        this.lifeTime--;
-        if (this.lifeTime <= 0) {
-            if (this.type === 'grenade') this.explode();
-            this.dead = true;
+    update(dt) {
+        if(this.deadTimer > 0) {
+            this.deadTimer -= dt;
+            if(this.deadTimer <= 0) this.reset();
             return;
         }
 
-        if (this.type === 'grenade') {
-            this.vy += GRAVITY;
-            this.vx *= 0.99;
-        }
+        if(this.iFrames > 0) this.iFrames -= dt;
+        if(this.dashCooldown > 0) this.dashCooldown -= dt;
+        if(this.shootCooldown > 0) this.shootCooldown -= dt;
+        if(this.grenadeCooldown > 0) this.grenadeCooldown -= dt;
 
-        this.x += this.vx;
-        this.y += this.vy;
-
-        // Platform collision
-        for (let p of state.platforms) {
-            if (rectIntersect(this, p)) {
-                if (this.type === 'grenade') {
-                    this.explode();
-                }
-                this.dead = true;
-                return;
+        // Apply Input (if not pounding wildly)
+        if(!this.isPounding) {
+            let moveSpeed = 6;
+            if (this.keys.a) this.vx -= 1.5;
+            if (this.keys.d) this.vx += 1.5;
+            this.vx *= 0.8; // friction
+            if(Math.abs(this.vx) > moveSpeed && this.dashCooldown < 800) { // Limit normal speed unless dashing
+                this.vx = Math.sign(this.vx) * moveSpeed;
             }
         }
 
-        // Player collision
-        for (let pid in state.players) {
-            if (pid === this.ownerId) continue;
-            let target = state.players[pid];
-            if (target.state !== 'alive' || target.spectating) continue;
+        // Gravity
+        this.vy += 0.6; 
+        if(this.vy > 25) this.vy = 25; // Terminal velocity
 
-            if (rectIntersect(this, target)) {
-                if (this.type === 'bullet') {
-                    target.takeDamage(80, this.ownerId); // 80 dmg per bullet
-                } else if (this.type === 'grenade') {
-                    this.explode();
+        // Movement & Collisions X
+        this.x += this.vx;
+        for(let p of PLATFORMS) {
+            if(this.checkOverlap(p)) {
+                if(this.vx > 0) { this.x = p.x - this.width; this.vx = 0; }
+                else if(this.vx < 0) { this.x = p.x + p.w; this.vx = 0; }
+            }
+        }
+
+        // Movement & Collisions Y
+        this.y += this.vy;
+        this.grounded = false;
+        for(let p of PLATFORMS) {
+            if(this.checkOverlap(p)) {
+                if(this.vy > 0) { 
+                    this.y = p.y - this.height; 
+                    this.vy = 0; 
+                    this.grounded = true; 
+                    this.jumps = 2;
+                    if(this.isPounding) {
+                        this.isPounding = false;
+                        this.doPoundSplash();
+                    }
                 }
-                this.dead = true;
-                return;
+                else if(this.vy < 0) { this.y = p.y + p.h; this.vy = 0; }
+            }
+        }
+
+        // Keep in bounds strictly
+        if(this.y > MAP_H + 100) this.die(null);
+
+        // Actions
+        if(this.clicking && this.shootCooldown <= 0 && this.iFrames <= 0) {
+            this.shoot();
+            this.shootCooldown = 200; // Fast shots
+        }
+        if(this.rClicking && this.grenadeCooldown <= 0 && this.iFrames <= 0) {
+            this.throwGrenade();
+            this.grenadeCooldown = this.cheats.grenadier ? 0 : 5000;
+        }
+    }
+
+    checkOverlap(rect) {
+        return this.x < rect.x + rect.w && this.x + this.width > rect.x &&
+               this.y < rect.y + rect.h && this.y + this.height > rect.y;
+    }
+
+    jump() {
+        if(this.deadTimer > 0) return;
+        if(this.grounded || this.jumps > 0) {
+            this.vy = this.highJump ? -16 : -13;
+            this.jumps--;
+            this.grounded = false;
+            this.isPounding = false;
+        }
+    }
+
+    dash(dir) {
+        if(this.deadTimer > 0 || !this.canDash || this.dashCooldown > 0) return;
+        this.vx = dir * 25;
+        this.dashCooldown = 1500;
+    }
+
+    pound() {
+        if(this.deadTimer > 0 || !this.canPound || this.grounded) return;
+        this.isPounding = true;
+        this.vy = 30; // Slam down
+    }
+
+    shoot() {
+        let speed = 20;
+        if(this.cheats.shotgun) {
+            for(let i=-4; i<=4; i++) {
+                let a = this.mouseAngle + (i * 0.1);
+                hostState.bullets.push(new HostBullet(this.x + this.width/2, this.y + this.height/2, Math.cos(a)*speed, Math.sin(a)*speed, this.id));
+            }
+        } else {
+            hostState.bullets.push(new HostBullet(this.x + this.width/2, this.y + this.height/2, Math.cos(this.mouseAngle)*speed, Math.sin(this.mouseAngle)*speed, this.id));
+        }
+    }
+
+    throwGrenade() {
+        let speed = 15;
+        hostState.grenades.push(new HostGrenade(this.x + this.width/2, this.y + this.height/2, Math.cos(this.mouseAngle)*speed, Math.sin(this.mouseAngle)*speed - 5, this.id));
+    }
+
+    doPoundSplash() {
+        hostState.effects.push({x: this.x + this.width/2, y: this.y + this.height, type: 'pound'});
+        let cx = this.x + this.width/2;
+        let cy = this.y + this.height;
+        for(let pid in hostState.players) {
+            let target = hostState.players[pid];
+            if(pid !== this.id && target.deadTimer <= 0 && target.iFrames <= 0 && !target.cheats.god) {
+                let dx = (target.x + target.width/2) - cx;
+                let dy = (target.y + target.height/2) - cy;
+                let dist = Math.sqrt(dx*dx + dy*dy);
+                if(dist < 200) {
+                    target.takeDamage(200, this.id);
+                    target.vy -= 10;
+                    target.vx += Math.sign(dx) * 15;
+                }
             }
         }
     }
 
-    explode() {
-        const radius = 150;
-        const damage = 350;
-        state.particles.push({x: this.x, y: this.y, r: radius, life: 15, maxLife: 15, type: 'explosion'});
-        
-        for (let pid in state.players) {
-            let target = state.players[pid];
-            if (target.state !== 'alive') continue;
-            
-            let dist = distance(this.x, this.y, target.x+target.w/2, target.y+target.h/2);
-            if (dist < radius) {
-                // Diminishing damage over distance
-                let appliedDmg = damage * (1 - dist/radius);
-                target.takeDamage(appliedDmg, this.ownerId);
+    takeDamage(amt, attackerId) {
+        if(this.deadTimer > 0 || this.iFrames > 0 || this.cheats.god) return;
+        this.hp -= amt;
+        if(this.hp <= 0) {
+            this.die(attackerId);
+            if(attackerId && hostState.players[attackerId]) {
+                hostState.players[attackerId].hp = Math.min(hostState.players[attackerId].maxHp, hostState.players[attackerId].hp + 200); // Heal on kill
             }
         }
     }
 }
 
-class Drop {
-    constructor(x, y, type, value) {
-        this.x = x; this.y = y;
-        this.w = 15; this.h = 15;
-        this.vx = (Math.random() - 0.5) * 4;
-        this.vy = -5;
-        this.type = type; // xp, health
-        this.value = value;
+class HostBullet {
+    constructor(x, y, vx, vy, owner) {
+        this.x = x; this.y = y; this.vx = vx; this.vy = vy; this.owner = owner;
+        this.life = 100;
         this.dead = false;
-        this.lifeTime = 900; // 15 seconds approx at 60fps
     }
-
     update() {
-        this.lifeTime--;
-        if (this.lifeTime <= 0) this.dead = true;
-
-        this.vy += GRAVITY;
-        this.x += this.vx;
-        this.y += this.vy;
+        this.x += this.vx; this.y += this.vy; this.life--;
+        if(this.life <= 0) this.dead = true;
         
-        for (let p of state.platforms) {
-            if (rectIntersect(this, p)) {
-                if (this.vy > 0) {
-                    this.y = p.y - this.h;
-                    this.vy = 0;
-                    this.vx *= 0.5;
-                }
-            }
+        // Map coll
+        for(let p of PLATFORMS) {
+            if(this.x > p.x && this.x < p.x + p.w && this.y > p.y && this.y < p.y + p.h) { this.dead = true; return; }
         }
 
-        // Collection
-        for (let pid in state.players) {
-            let p = state.players[pid];
-            if (p.state !== 'alive' || p.spectating) continue;
-            
-            if (rectIntersect(this, p)) {
-                if (this.type === 'xp') {
-                    p.xp += this.value;
-                } else if (this.type === 'health') {
-                    p.hp = Math.min(p.maxHp, p.hp + this.value);
-                }
+        // Player coll
+        for(let pid in hostState.players) {
+            if(pid === this.owner) continue;
+            let p = hostState.players[pid];
+            if(p.deadTimer <= 0 && this.x > p.x && this.x < p.x + p.width && this.y > p.y && this.y < p.y + p.height) {
+                p.takeDamage(50, this.owner);
                 this.dead = true;
                 return;
             }
@@ -561,506 +437,571 @@ class Drop {
     }
 }
 
-/**
- * NETWORKING & GAME LOOP GLOBALS
- */
-let peer = null;
-let connection = null; // For client
-let hostConnections = {}; // For host
-let myId = null;
-let isHost = false;
-let hostCode = '';
-let gameLoopInterval = null;
+class HostGrenade {
+    constructor(x, y, vx, vy, owner) {
+        this.x = x; this.y = y; this.vx = vx; this.vy = vy; this.owner = owner;
+        this.timer = 2000;
+        this.dead = false;
+    }
+    update(dt) {
+        this.vy += 0.4;
+        this.x += this.vx; this.y += this.vy;
+        
+        // Bounce
+        for(let p of PLATFORMS) {
+            if(this.x > p.x && this.x < p.x + p.w && this.y > p.y && this.y < p.y + p.h) {
+                // simple revert and bounce
+                this.y -= this.vy; this.vy *= -0.5;
+                this.x -= this.vx; this.vx *= 0.8;
+            }
+        }
+        
+        this.timer -= dt;
+        if(this.timer <= 0) {
+            this.explode();
+        }
+    }
+    explode() {
+        this.dead = true;
+        hostState.effects.push({x: this.x, y: this.y, type: 'grenade'});
+        for(let pid in hostState.players) {
+            let p = hostState.players[pid];
+            if(p.deadTimer <= 0 && p.iFrames <= 0 && !p.cheats.god) {
+                let dx = (p.x + p.width/2) - this.x;
+                let dy = (p.y + p.height/2) - this.y;
+                let dist = Math.sqrt(dx*dx + dy*dy);
+                if(dist < 250) {
+                    let dmg = Math.max(50, 300 - dist); // Falloff damage
+                    p.takeDamage(dmg, this.owner);
+                    p.vx += (dx/dist) * 20;
+                    p.vy += (dy/dist) * 20;
+                }
+            }
+        }
+    }
+}
 
-// Inputs
-const keys = { w:false, a:false, s:false, d:false, ArrowUp:false, ArrowDown:false, ArrowLeft:false, ArrowRight:false, g:false };
-let mouseX = 0, mouseY = 0, mouseDown = false, rightClick = false;
+class HostDrop {
+    constructor(x, y, xp) {
+        this.x = x; this.y = y; this.xp = xp; this.vy = -10; this.vx = (Math.random()-0.5)*10;
+        this.dead = false;
+        this.life = 30000; // 30s disappear
+    }
+    update(dt) {
+        this.vy += 0.5; this.x += this.vx; this.y += this.vy; this.vx *= 0.95;
+        for(let p of PLATFORMS) {
+            if(this.x > p.x && this.x < p.x + p.w && this.y > p.y && this.y < p.y + p.h) {
+                this.y -= this.vy; this.vy = 0; this.vx = 0;
+            }
+        }
+        
+        for(let pid in hostState.players) {
+            let p = hostState.players[pid];
+            if(p.deadTimer <= 0 && this.x > p.x - 20 && this.x < p.x + p.width + 20 && this.y > p.y - 20 && this.y < p.y + p.height + 20) {
+                p.xp += this.xp;
+                p.hp = Math.min(p.maxHp, p.hp + 150); // Heal a bit
+                p.updateStats();
+                this.dead = true;
+                return;
+            }
+        }
 
-// Dash detection
-let lastADate = 0, lastDDate = 0;
-let pendingDash = 0;
+        this.life -= dt;
+        if(this.life <= 0) this.dead = true;
+    }
+}
 
-/**
- * UI BINDINGS
- */
-document.getElementById('btn-host').addEventListener('click', startHost);
-document.getElementById('btn-join').addEventListener('click', startClient);
-document.getElementById('btn-toggle-host-panel').addEventListener('click', () => document.getElementById('host-panel').classList.toggle('hidden'));
-document.getElementById('btn-close-host-panel').addEventListener('click', () => document.getElementById('host-panel').classList.add('hidden'));
+let hostState = { players: {}, bullets: [], grenades: [], drops: [], effects: [] };
+let hostInterval = null;
+let targetCheatId = null;
 
-document.getElementById('toggle-spectate').addEventListener('change', (e) => {
-    if (isHost && state.players[myId]) {
-        state.players[myId].spectating = e.target.checked;
+function startHostGame() {
+    isHost = true;
+    hostPlaying = true;
+    currentCode = generateRoomCode();
+    myId = "host";
+    
+    document.getElementById('main-menu').classList.add('hidden');
+    document.getElementById('host-dashboard').classList.remove('hidden');
+    document.getElementById('host-room-code').innerText = currentCode.replace(ID_PREFIX, '');
+    
+    // Init Peer
+    peer = new Peer(currentCode);
+    peer.on('open', (id) => { console.log("Host ready:", id); });
+    peer.on('connection', (conn) => {
+        conn.on('data', (data) => handleClientData(conn.peer, data));
+        conn.on('close', () => { removePlayer(conn.peer); });
+    });
+
+    // Add Host as player
+    hostState.players[myId] = new HostPlayer(myId, myName);
+    
+    // Host Logic Loop (40 FPS)
+    let lastTime = performance.now();
+    hostInterval = setInterval(() => {
+        let now = performance.now();
+        let dt = now - lastTime;
+        lastTime = now;
+
+        // Host Local Inputs
+        if(hostPlaying && hostState.players[myId]) {
+            let hp = hostState.players[myId];
+            hp.keys = {...keys};
+            hp.clicking = mouse.left;
+            hp.rClicking = mouse.right;
+            hp.mouseAngle = Math.atan2(mouse.screenY - window.innerHeight/2, mouse.screenX - window.innerWidth/2);
+            // Jumps/Dashes handled directly by events
+        }
+
+        // Update physics
+        for(let id in hostState.players) hostState.players[id].update(dt);
+        
+        hostState.bullets.forEach(b => b.update());
+        hostState.bullets = hostState.bullets.filter(b => !b.dead);
+
+        hostState.grenades.forEach(g => g.update(dt));
+        hostState.grenades = hostState.grenades.filter(g => !g.dead);
+
+        hostState.drops.forEach(d => d.update(dt));
+        hostState.drops = hostState.drops.filter(d => !d.dead);
+
+        // Prep sync package
+        let syncData = { 
+            players: {}, 
+            bullets: hostState.bullets.map(b => [Math.round(b.x), Math.round(b.y)]), 
+            grenades: hostState.grenades.map(g => [Math.round(g.x), Math.round(g.y)]), 
+            drops: hostState.drops.map(d => [Math.round(d.x), Math.round(d.y), d.xp]),
+            effects: hostState.effects 
+        };
+        for(let id in hostState.players) {
+            let p = hostState.players[id];
+            syncData.players[id] = {
+                x: Math.round(p.x), y: Math.round(p.y), vx: Math.round(p.vx), vy: Math.round(p.vy),
+                hp: p.hp, maxHp: p.maxHp, xp: p.xp, name: p.name, color: p.color,
+                iFrames: p.iFrames > 0, dead: p.deadTimer > 0, deadTimer: Math.round(p.deadTimer),
+                dashCd: p.dashCooldown, grenadeCd: p.grenadeCooldown, isPounding: p.isPounding
+            };
+        }
+        
+        hostState.effects = []; // clear effects
+
+        // Update Local state for rendering immediately
+        localState = JSON.parse(JSON.stringify(syncData)); 
+
+        // Broadcast to clients
+        let payload = JSON.stringify({type: 'state', state: syncData});
+        for(let id in connections) {
+            if(connections[id].open) connections[id].send(payload);
+        }
+
+        updateHostUI();
+
+    }, 1000/40); // 40 Hz server
+
+    startGameClient();
+}
+
+function handleClientData(clientId, data) {
+    let p = hostState.players[clientId];
+    if(data.type === 'join') {
+        hostState.players[clientId] = new HostPlayer(clientId, data.name.substring(0, 15));
+        connections[clientId] = peer.connections[clientId][0];
+    }
+    else if(data.type === 'input' && p) {
+        p.keys = data.keys;
+        p.clicking = data.mouse.left;
+        p.rClicking = data.mouse.right;
+        p.mouseAngle = data.mouse.angle;
+    }
+    else if(data.type === 'action' && p) {
+        if(data.action === 'jump') p.jump();
+        else if(data.action === 'dash') p.dash(data.dir);
+        else if(data.action === 'pound') p.pound();
+    }
+}
+
+function removePlayer(id) {
+    delete hostState.players[id];
+    delete connections[id];
+}
+
+function hostKickPlayer(id) {
+    if(connections[id]) {
+        connections[id].send(JSON.stringify({type: 'kicked'}));
+        setTimeout(() => { connections[id].close(); removePlayer(id); }, 100);
+    }
+}
+
+function hostOpPlayer(id) {
+    targetCheatId = id;
+    let p = hostState.players[id];
+    if(!p) return;
+    document.getElementById('cheat-target-name').innerText = p.name;
+    document.getElementById('cheat-god').checked = p.cheats.god;
+    document.getElementById('cheat-shotgun').checked = p.cheats.shotgun;
+    document.getElementById('cheat-grenadier').checked = p.cheats.grenadier;
+    document.getElementById('cheats-modal').classList.remove('hidden');
+}
+
+document.getElementById('cheat-god').addEventListener('change', e => { if(hostState.players[targetCheatId]) hostState.players[targetCheatId].cheats.god = e.target.checked; });
+document.getElementById('cheat-shotgun').addEventListener('change', e => { if(hostState.players[targetCheatId]) hostState.players[targetCheatId].cheats.shotgun = e.target.checked; });
+document.getElementById('cheat-grenadier').addEventListener('change', e => { if(hostState.players[targetCheatId]) hostState.players[targetCheatId].cheats.grenadier = e.target.checked; });
+document.getElementById('btn-close-cheats').addEventListener('click', () => { document.getElementById('cheats-modal').classList.add('hidden'); });
+
+function updateHostUI() {
+    document.getElementById('player-count').innerText = Object.keys(hostState.players).length;
+    let listHTML = '';
+    for(let id in hostState.players) {
+        let p = hostState.players[id];
+        let isMe = id === myId;
+        listHTML += `
+            <div class="flex justify-between items-center bg-gray-800 p-2 rounded text-sm">
+                <span class="font-bold truncate w-24" style="color:${p.color}">${p.name} ${isMe?"(Host)":""}</span>
+                <span class="text-xs text-gray-400 w-16 text-right">${p.xp} XP</span>
+                <div class="flex gap-1">
+                    <button onclick="hostOpPlayer('${id}')" class="px-2 py-1 bg-purple-600 hover:bg-purple-500 rounded text-xs">OP</button>
+                    ${!isMe ? `<button onclick="hostKickPlayer('${id}')" class="px-2 py-1 bg-red-600 hover:bg-red-500 rounded text-xs">Kick</button>` : ''}
+                </div>
+            </div>`;
+    }
+    document.getElementById('player-list').innerHTML = listHTML;
+}
+
+document.getElementById('btn-host-toggle-play').addEventListener('click', (e) => {
+    hostPlaying = !hostPlaying;
+    e.target.innerText = hostPlaying ? "Spectating" : "Playing"; // It toggles state
+    e.target.classList.toggle('bg-blue-600');
+    if(!hostPlaying) {
+        if(hostState.players[myId]) hostState.players[myId].deadTimer = 999999; // Essentially hide them
+    } else {
+        if(hostState.players[myId]) hostState.players[myId].reset();
     }
 });
 
-function showStatus(msg) {
-    document.getElementById('connection-status').innerText = msg;
-}
 
-/**
- * HOST LOGIC
- */
-function startHost() {
-    const name = document.getElementById('playerName').value.trim() || 'Host';
-    hostCode = randomString(5);
-    
-    showStatus('Initializing Host...');
-    
-    peer = new Peer(hostCode);
-    
-    peer.on('open', (id) => {
-        myId = id;
-        isHost = true;
-        document.getElementById('main-menu').classList.add('hidden');
-        document.getElementById('host-code-display').classList.remove('hidden');
-        document.getElementById('display-code').innerText = hostCode;
-        
-        generateMap();
-        state.players[myId] = new Player(myId, name, true);
-        
-        peer.on('connection', (conn) => {
-            conn.on('open', () => {
-                hostConnections[conn.peer] = conn;
-                
-                // Expect first message to be join info
-                conn.on('data', (data) => {
-                    if (data.type === 'join') {
-                        let cName = data.name.substring(0, 15);
-                        state.players[conn.peer] = new Player(conn.peer, cName, false);
-                    } else if (data.type === 'input') {
-                        if (state.players[conn.peer]) {
-                            // Merge inputs safely
-                            let p = state.players[conn.peer];
-                            p.inputs.left = data.input.left;
-                            p.inputs.right = data.input.right;
-                            if (data.input.up) p.inputs.up = true; // edge trigger
-                            if (data.input.down) p.inputs.down = true;
-                            if (data.input.dash) p.inputs.dash = data.input.dash;
-                            if (data.input.click) p.inputs.click = true;
-                            if (data.input.grenade) p.inputs.grenade = true;
-                            p.inputs.mouseAngle = data.input.mouseAngle;
-                        }
-                    }
-                });
-                
-                conn.on('close', () => {
-                    delete hostConnections[conn.peer];
-                    delete state.players[conn.peer];
-                });
-            });
-        });
-        
-        startGameLoop();
-        setInterval(updateHostPanel, 1000);
-    });
+// --- CLIENT LOGIC ---
+let clientEffects = [];
 
-    peer.on('error', (err) => {
-        showStatus('Error: ' + err.type);
-    });
-}
-
-function updateHostPanel() {
-    const list = document.getElementById('host-player-list');
-    list.innerHTML = '';
-    
-    for (let id in state.players) {
-        let p = state.players[id];
-        let div = document.createElement('div');
-        div.className = 'mb-2 p-2 bg-gray-700 rounded text-sm';
-        div.innerHTML = `
-            <div class="flex justify-between items-center mb-1">
-                <span class="font-bold ${p.id === myId ? 'text-blue-300' : 'text-white'}">${p.name}</span>
-                ${p.id !== myId ? `<button onclick="kickPlayer('${p.id}')" class="text-xs bg-red-600 hover:bg-red-500 px-2 py-1 rounded">Kick</button>` : ''}
-            </div>
-            <div class="flex space-x-2">
-                <label class="flex items-center space-x-1 cursor-pointer"><input type="checkbox" onchange="toggleCheat('${p.id}', 'godMode', this.checked)" ${p.godMode?'checked':''}> <span class="text-xs">God</span></label>
-                <label class="flex items-center space-x-1 cursor-pointer"><input type="checkbox" onchange="toggleCheat('${p.id}', 'shotgun', this.checked)" ${p.shotgun?'checked':''}> <span class="text-xs">Shotgun</span></label>
-                <label class="flex items-center space-x-1 cursor-pointer"><input type="checkbox" onchange="toggleCheat('${p.id}', 'grenadier', this.checked)" ${p.grenadier?'checked':''}> <span class="text-xs">Grenadier</span></label>
-            </div>
-        `;
-        list.appendChild(div);
-    }
-}
-
-// Global functions for host panel bindings
-window.kickPlayer = function(id) {
-    if (hostConnections[id]) {
-        hostConnections[id].send({type: 'kick'});
-        setTimeout(() => {
-            hostConnections[id].close();
-            delete hostConnections[id];
-            delete state.players[id];
-            updateHostPanel();
-        }, 500);
-    }
-};
-
-window.toggleCheat = function(id, cheat, value) {
-    if (state.players[id]) {
-        state.players[id][cheat] = value;
-    }
-};
-
-function hostUpdate() {
-    // Apply my own inputs directly if host
-    if (state.players[myId]) {
-        let p = state.players[myId];
-        p.inputs.left = keys.a || keys.ArrowLeft;
-        p.inputs.right = keys.d || keys.ArrowRight;
-        if (keys.w || keys.ArrowUp) { p.inputs.up = true; keys.w=false; keys.ArrowUp=false;}
-        p.inputs.down = keys.s || keys.ArrowDown;
-        
-        if (pendingDash !== 0) { p.inputs.dash = pendingDash; pendingDash = 0; }
-        if (mouseDown) { p.inputs.click = true; mouseDown = false; }
-        if (rightClick || keys.g) { p.inputs.grenade = true; rightClick = false; keys.g = false; }
-        
-        // Calculate angle based on camera offset
-        let cx = cw/2 - p.x; let cy = ch/2 - p.y;
-        let worldMouseX = mouseX - cx; let worldMouseY = mouseY - cy;
-        p.inputs.mouseAngle = Math.atan2(worldMouseY - (p.y + p.h/2), worldMouseX - (p.x + p.w/2));
-    }
-
-    // Update everything
-    for (let id in state.players) state.players[id].update();
-    
-    for (let i = state.projectiles.length - 1; i >= 0; i--) {
-        state.projectiles[i].update();
-        if (state.projectiles[i].dead) state.projectiles.splice(i, 1);
-    }
-    
-    for (let i = state.drops.length - 1; i >= 0; i--) {
-        state.drops[i].update();
-        if (state.drops[i].dead) state.drops.splice(i, 1);
-    }
-
-    // Particle lifecycle
-    for (let i = state.particles.length - 1; i >= 0; i--) {
-        let p = state.particles[i];
-        p.life--;
-        if (p.vx) { p.x+=p.vx; p.y+=p.vy; }
-        if (p.life <= 0) state.particles.splice(i, 1);
-    }
-
-    // Broadcast State
-    let payload = {
-        type: 'state',
-        state: {
-            players: state.players,
-            projectiles: state.projectiles,
-            drops: state.drops,
-            platforms: state.platforms, // Only need to send occasionally but doing it always for simplicity
-            particles: state.particles
-        }
-    };
-    
-    for (let id in hostConnections) {
-        if (hostConnections[id].open) {
-            hostConnections[id].send(payload);
-        }
-    }
-}
-
-/**
- * CLIENT LOGIC
- */
-function startClient() {
-    const name = document.getElementById('playerName').value.trim() || 'Player';
-    const code = document.getElementById('joinCode').value.trim().toUpperCase();
-    
-    if (!code) { showStatus('Enter a code'); return; }
-    
-    showStatus('Connecting...');
-    
+function joinGame(code) {
+    document.getElementById('menu-error').classList.add('hidden');
+    currentCode = ID_PREFIX + code.toUpperCase().replace(ID_PREFIX, '');
     peer = new Peer();
     
     peer.on('open', (id) => {
         myId = id;
-        connection = peer.connect(code);
-        
-        connection.on('open', () => {
+        let conn = peer.connect(currentCode);
+        conn.on('open', () => {
             document.getElementById('main-menu').classList.add('hidden');
-            connection.send({ type: 'join', name: name });
-            startGameLoop();
+            conn.send({type: 'join', name: myName});
+            connections['host'] = conn;
+            startGameClient();
         });
         
-        connection.on('data', (data) => {
-            if (data.type === 'state') {
-                // Completely overwrite local state with host state
-                state.players = data.state.players;
-                state.projectiles = data.state.projectiles;
-                state.drops = data.state.drops;
-                state.platforms = data.state.platforms;
-                state.particles = data.state.particles;
-            } else if (data.type === 'kick') {
-                alert('You were kicked by the host.');
+        conn.on('data', (dataStr) => {
+            let data = JSON.parse(dataStr);
+            if(data.type === 'state') {
+                localState = data.state;
+                // Add effects
+                if(data.state.effects) {
+                    data.state.effects.forEach(e => {
+                        clientEffects.push({x: e.x, y: e.y, type: e.type, radius: 0, alpha: 1});
+                    });
+                }
+            } else if (data.type === 'kicked') {
+                alert("You have been kicked by the host.");
                 location.reload();
             }
         });
         
-        connection.on('close', () => {
-            alert('Connection to host lost.');
-            location.reload();
-        });
+        conn.on('close', () => { alert("Host disconnected."); location.reload(); });
+        conn.on('error', () => { showMenuError("Connection failed. Invalid code?"); });
     });
-
-    peer.on('error', (err) => {
-        showStatus('Error: Invalid code or host disconnected.');
-    });
+    peer.on('error', (err) => { showMenuError("Peer error: " + err.type); });
 }
 
-function clientUpdate() {
-    // Send Inputs to Host
-    if (!connection || !connection.open) return;
-    
-    let p = state.players[myId];
-    if (!p) return;
-
-    let cx = cw/2 - p.x; let cy = ch/2 - p.y;
-    let worldMouseX = mouseX - cx; let worldMouseY = mouseY - cy;
-    let angle = Math.atan2(worldMouseY - (p.y + p.h/2), worldMouseX - (p.x + p.w/2));
-
-    let inputData = {
-        left: keys.a || keys.ArrowLeft,
-        right: keys.d || keys.ArrowRight,
-        up: false,
-        down: keys.s || keys.ArrowDown,
-        dash: pendingDash,
-        click: false,
-        grenade: false,
-        mouseAngle: angle
-    };
-
-    if (keys.w || keys.ArrowUp) { inputData.up = true; keys.w=false; keys.ArrowUp=false;}
-    if (mouseDown) { inputData.click = true; mouseDown = false; }
-    if (rightClick || keys.g) { inputData.grenade = true; rightClick = false; keys.g = false; }
-
-    pendingDash = 0; // reset local
-    
-    connection.send({ type: 'input', input: inputData });
+function showMenuError(msg) {
+    let el = document.getElementById('menu-error');
+    el.innerText = msg;
+    el.classList.remove('hidden');
 }
 
-/**
- * MAIN GAME LOOP & RENDER
- */
-function startGameLoop() {
-    document.getElementById('hud').classList.remove('hidden');
+function startGameClient() {
+    document.getElementById('game-canvas').classList.remove('hidden');
+    document.getElementById('hud-overlay').classList.remove('hidden');
     
-    setInterval(() => {
-        if (isHost) hostUpdate();
-        else clientUpdate();
-    }, 1000/60); // 60 TPS
-
-    requestAnimationFrame(render);
-}
-
-function render() {
-    CTX.fillStyle = '#1a202c';
-    CTX.fillRect(0, 0, cw, ch);
-
-    let me = state.players[myId];
-    let cx = 0, cy = 0;
-
-    if (me) {
-        // Camera follow
-        cx = cw/2 - me.x;
-        cy = ch/2 - me.y;
-        
-        // Boundaries for camera (optional, but good for large maps)
-        if (cx > 100) cx = 100;
-        if (cy > 100) cy = 100;
-        if (cx < cw - WORLD_WIDTH - 100) cx = cw - WORLD_WIDTH - 100;
-        if (cy < ch - WORLD_HEIGHT - 100) cy = ch - WORLD_HEIGHT - 100;
-
-        CTX.save();
-        CTX.translate(cx, cy);
-
-        // Draw Map Boundaries
-        CTX.strokeStyle = '#4a5568';
-        CTX.lineWidth = 5;
-        CTX.strokeRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
-
-        // Draw Platforms
-        CTX.fillStyle = '#2d3748';
-        for (let p of state.platforms) {
-            CTX.fillRect(p.x, p.y, p.w, p.h);
-            CTX.strokeStyle = '#4a5568';
-            CTX.lineWidth = 2;
-            CTX.strokeRect(p.x, p.y, p.w, p.h);
-        }
-
-        // Draw Drops
-        for (let d of state.drops) {
-            if (d.type === 'xp') CTX.fillStyle = '#ecc94b'; // yellow
-            else CTX.fillStyle = '#f56565'; // red
-            
-            CTX.beginPath();
-            CTX.arc(d.x + d.w/2, d.y + d.h/2, d.w/2, 0, Math.PI*2);
-            CTX.fill();
-        }
-
-        // Draw Particles
-        for (let p of state.particles) {
-            if (p.type === 'explosion') {
-                CTX.fillStyle = `rgba(255, 100, 0, ${p.life / p.maxLife})`;
-                CTX.beginPath(); CTX.arc(p.x, p.y, p.r, 0, Math.PI*2); CTX.fill();
-            } else if (p.type === 'pound') {
-                CTX.fillStyle = `rgba(100, 200, 255, ${p.life / p.maxLife * 0.5})`;
-                CTX.beginPath(); CTX.arc(p.x, p.y, p.r, 0, Math.PI*2); CTX.fill();
-            } else if (p.type === 'blood') {
-                CTX.fillStyle = `rgba(255, 0, 0, ${p.life / p.maxLife})`;
-                CTX.fillRect(p.x, p.y, 4, 4);
-            }
-        }
-
-        // Draw Players
-        for (let id in state.players) {
-            let p = state.players[id];
-            if (p.state !== 'alive' || p.spectating) continue;
-
-            const isInvulnerable = Date.now() < p.iFramesUntil;
-            if (isInvulnerable && Math.floor(Date.now() / 100) % 2 === 0) {
-                // Blink effect
-            } else {
-                CTX.fillStyle = p.color;
-                CTX.fillRect(p.x, p.y, p.w, p.h);
+    // Client input loop (send to host)
+    if(!isHost) {
+        setInterval(() => {
+            if(connections['host'] && connections['host'].open) {
+                // Calculate angle based on camera
+                let playerX = window.innerWidth/2;
+                let playerY = window.innerHeight/2;
+                // Actually, if we are near map edge, player isn't in center. 
+                // We use stored screen pos of player.
+                let angle = Math.atan2(mouse.screenY - mouse.pScreenY, mouse.screenX - mouse.pScreenX);
                 
-                // God mode aura
-                if (p.godMode) {
-                    CTX.strokeStyle = '#ecc94b';
-                    CTX.lineWidth = 3;
-                    CTX.strokeRect(p.x-5, p.y-5, p.w+10, p.h+10);
-                }
+                connections['host'].send({
+                    type: 'input',
+                    keys: keys,
+                    mouse: { left: mouse.left, right: mouse.right, angle: angle }
+                });
             }
-
-            // Name plate
-            CTX.fillStyle = 'white';
-            CTX.font = '12px sans-serif';
-            CTX.textAlign = 'center';
-            CTX.fillText(p.name, p.x + p.w/2, p.y - 15);
-
-            // Health bar (World)
-            CTX.fillStyle = 'red';
-            CTX.fillRect(p.x - 10, p.y - 10, 50, 4);
-            CTX.fillStyle = '#48bb78';
-            CTX.fillRect(p.x - 10, p.y - 10, 50 * (p.hp / p.maxHp), 4);
-        }
-
-        // Draw Projectiles
-        for (let p of state.projectiles) {
-            if (p.type === 'grenade') {
-                CTX.fillStyle = '#48bb78';
-                CTX.beginPath();
-                CTX.arc(p.x, p.y, p.w, 0, Math.PI*2);
-                CTX.fill();
-            } else {
-                CTX.fillStyle = '#e2e8f0';
-                CTX.fillRect(p.x, p.y, p.w, p.h);
-            }
-        }
-
-        CTX.restore();
-
-        // --- HUD & UI Updates ---
-        
-        // Death Screen Logic
-        const ds = document.getElementById('death-screen');
-        if (me.state === 'dead' && !me.spectating) {
-            ds.classList.remove('hidden');
-            let remaining = Math.max(0, Math.ceil((15000 - (Date.now() - me.deathTime)) / 1000));
-            document.getElementById('respawn-timer').innerText = remaining;
-        } else {
-            ds.classList.add('hidden');
-        }
-
-        // Update HUD
-        if (!me.spectating) {
-            document.getElementById('hud-name').innerText = me.name;
-            document.getElementById('hud-hp').style.width = `${(me.hp / me.maxHp) * 100}%`;
-            document.getElementById('hud-hp-text').innerText = `${Math.ceil(me.hp)} / ${me.maxHp}`;
-            
-            // Calc XP progress to next level or max
-            let xpMax = 2000;
-            let xpPercent = Math.min(100, (me.xp / xpMax) * 100);
-            document.getElementById('hud-xp').style.width = `${xpPercent}%`;
-            document.getElementById('hud-xp-text').innerText = `${me.xp} XP`;
-
-            let n = Date.now();
-            if (n < me.grenadeCooldown && !me.grenadier) {
-                let rem = ((me.grenadeCooldown - n) / 1000).toFixed(1);
-                document.getElementById('hud-grenade').innerText = `${rem}s`;
-                document.getElementById('hud-grenade').className = 'text-red-400';
-            } else {
-                document.getElementById('hud-grenade').innerText = 'READY';
-                document.getElementById('hud-grenade').className = 'text-green-400 font-bold animate-pulse';
-            }
-
-            // Unlocks
-            let unlocksHtml = '';
-            if (me.xp >= 200) unlocksHtml += '<span class="text-green-300 block">✓ Max HP Boost</span>';
-            else unlocksHtml += '<span class="text-gray-600 block">✗ Max HP Boost (200XP)</span>';
-            
-            if (me.xp >= 500) unlocksHtml += '<span class="text-green-300 block">✓ High Jump</span>';
-            else unlocksHtml += '<span class="text-gray-600 block">✗ High Jump (500XP)</span>';
-            
-            if (me.xp >= 1000) unlocksHtml += '<span class="text-green-300 block">✓ Dash (Double Tap)</span>';
-            else unlocksHtml += '<span class="text-gray-600 block">✗ Dash (1000XP)</span>';
-
-            if (me.xp >= 2000) unlocksHtml += '<span class="text-green-300 block">✓ Ground Pound (Down in Air)</span>';
-            else unlocksHtml += '<span class="text-gray-600 block">✗ Ground Pound (2000XP)</span>';
-
-            document.getElementById('hud-unlocks').innerHTML = unlocksHtml;
-        } else {
-            document.getElementById('hud-name').innerText = "SPECTATING";
-            document.getElementById('hud-hp').style.width = `0%`;
-            document.getElementById('hud-xp').style.width = `0%`;
-        }
+        }, 1000/30); // send inputs at 30hz
     }
 
-    requestAnimationFrame(render);
+    requestAnimationFrame(renderLoop);
 }
 
-/**
- * INPUT LISTENERS
- */
-window.addEventListener('keydown', (e) => {
-    if (keys.hasOwnProperty(e.key)) keys[e.key] = true;
-    if (keys.hasOwnProperty(e.key.toLowerCase())) keys[e.key.toLowerCase()] = true;
-    
-    // Dash detection
-    const now = Date.now();
-    if (e.key.toLowerCase() === 'a' || e.key === 'ArrowLeft') {
-        if (now - lastADate < 250) pendingDash = -1;
-        lastADate = now;
+// Input Handlers
+window.addEventListener('keydown', e => {
+    let key = e.key.toLowerCase();
+    if(key === 'w' || key === 'arrowup' || key === ' ') {
+        keys.w = true; sendAction('jump');
     }
-    if (e.key.toLowerCase() === 'd' || e.key === 'ArrowRight') {
-        if (now - lastDDate < 250) pendingDash = 1;
-        lastDDate = now;
+    if(key === 's' || key === 'arrowdown') {
+        keys.s = true; sendAction('pound');
+    }
+    if(key === 'a' || key === 'arrowleft') {
+        keys.a = true;
+        let now = Date.now();
+        if(now - lastDashTimes.left < 250) sendAction('dash', -1);
+        lastDashTimes.left = now;
+    }
+    if(key === 'd' || key === 'arrowright') {
+        keys.d = true;
+        let now = Date.now();
+        if(now - lastDashTimes.right < 250) sendAction('dash', 1);
+        lastDashTimes.right = now;
     }
 });
-
-window.addEventListener('keyup', (e) => {
-    if (keys.hasOwnProperty(e.key)) keys[e.key] = false;
-    if (keys.hasOwnProperty(e.key.toLowerCase())) keys[e.key.toLowerCase()] = false;
+window.addEventListener('keyup', e => {
+    let key = e.key.toLowerCase();
+    if(key === 'w' || key === 'arrowup' || key === ' ') keys.w = false;
+    if(key === 'a' || key === 'arrowleft') keys.a = false;
+    if(key === 's' || key === 'arrowdown') keys.s = false;
+    if(key === 'd' || key === 'arrowright') keys.d = false;
 });
 
-CANVAS.addEventListener('mousemove', (e) => {
-    mouseX = e.clientX;
-    mouseY = e.clientY;
+window.addEventListener('mousemove', e => { mouse.screenX = e.clientX; mouse.screenY = e.clientY; });
+window.addEventListener('mousedown', e => { if(e.button === 0) mouse.left = true; if(e.button === 2) mouse.right = true; });
+window.addEventListener('mouseup', e => { if(e.button === 0) mouse.left = false; if(e.button === 2) mouse.right = false; });
+window.addEventListener('contextmenu', e => e.preventDefault()); // Prevent right click menu
+
+function sendAction(action, dir=0) {
+    if(isHost && hostPlaying && hostState.players[myId]) {
+        if(action === 'jump') hostState.players[myId].jump();
+        if(action === 'dash') hostState.players[myId].dash(dir);
+        if(action === 'pound') hostState.players[myId].pound();
+    } else if(!isHost && connections['host'] && connections['host'].open) {
+        connections['host'].send({type: 'action', action: action, dir: dir});
+    }
+}
+
+// --- RENDERING ---
+const canvas = document.getElementById('game-canvas');
+const ctx = canvas.getContext('2d');
+
+function renderLoop() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    let me = localState.players[myId];
+
+    // Smooth Camera Follow
+    if(me && !me.dead && (isHost ? hostPlaying : true)) {
+        let targetCamX = me.x + P_W/2 - canvas.width/2;
+        let targetCamY = me.y + P_H/2 - canvas.height/2;
+        // Clamp camera to map
+        targetCamX = Math.max(0, Math.min(MAP_W - canvas.width, targetCamX));
+        targetCamY = Math.max(0, Math.min(MAP_H - canvas.height, targetCamY));
+        
+        camera.x += (targetCamX - camera.x) * 0.1;
+        camera.y += (targetCamY - camera.y) * 0.1;
+        
+        mouse.pScreenX = me.x + P_W/2 - camera.x;
+        mouse.pScreenY = me.y + P_H/2 - camera.y;
+    } else {
+        // Free camera or spectate
+        mouse.pScreenX = canvas.width/2;
+        mouse.pScreenY = canvas.height/2;
+    }
+
+    ctx.fillStyle = '#1e293b'; // Background
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    ctx.save();
+    ctx.translate(-camera.x, -camera.y);
+
+    // Draw Grid (Arena feel)
+    ctx.strokeStyle = '#334155';
+    ctx.lineWidth = 2;
+    let gSize = 100;
+    let startX = Math.floor(camera.x / gSize) * gSize;
+    let startY = Math.floor(camera.y / gSize) * gSize;
+    ctx.beginPath();
+    for(let x = startX; x < camera.x + canvas.width; x += gSize) { ctx.moveTo(x, camera.y); ctx.lineTo(x, camera.y + canvas.height); }
+    for(let y = startY; y < camera.y + canvas.height; y += gSize) { ctx.moveTo(camera.x, y); ctx.lineTo(camera.x + canvas.width, y); }
+    ctx.stroke();
+
+    // Draw Platforms
+    ctx.fillStyle = '#475569';
+    ctx.shadowColor = '#000';
+    ctx.shadowBlur = 10;
+    for(let p of PLATFORMS) {
+        // Only draw visible
+        if(p.x + p.w > camera.x && p.x < camera.x + canvas.width && p.y + p.h > camera.y && p.y < camera.y + canvas.height) {
+            ctx.fillRect(p.x, p.y, p.w, p.h);
+            // Neon accent edge
+            ctx.fillStyle = '#94a3b8';
+            ctx.fillRect(p.x, p.y, p.w, 4);
+            ctx.fillStyle = '#475569';
+        }
+    }
+    ctx.shadowBlur = 0;
+
+    // Interpolate & Draw Players
+    for(let id in localState.players) {
+        let p = localState.players[id];
+        if(p.dead) continue;
+
+        if(!renderState[id]) renderState[id] = {x: p.x, y: p.y};
+        
+        // Simple Lerp
+        renderState[id].x += (p.x - renderState[id].x) * 0.4;
+        renderState[id].y += (p.y - renderState[id].y) * 0.4;
+        
+        let rx = renderState[id].x;
+        let ry = renderState[id].y;
+
+        ctx.globalAlpha = p.iFrames ? 0.5 : 1.0;
+
+        // Draw Player Box
+        ctx.fillStyle = p.color;
+        ctx.fillRect(rx, ry, P_W, P_H);
+        
+        // Eye direction
+        ctx.fillStyle = 'white';
+        let lookDir = p.vx > 0 ? 1 : (p.vx < 0 ? -1 : 0);
+        if(lookDir === 0) lookDir = 1; // default
+        ctx.fillRect(rx + P_W/2 + (lookDir*10) - 5, ry + 15, 10, 10);
+        ctx.fillStyle = 'black';
+        ctx.fillRect(rx + P_W/2 + (lookDir*10) - 2 + (lookDir*2), ry + 17, 6, 6);
+
+        // Pound trail
+        if(p.isPounding) {
+            ctx.fillStyle = 'rgba(255, 200, 0, 0.5)';
+            ctx.fillRect(rx+5, ry - 40, P_W-10, 40);
+        }
+
+        ctx.globalAlpha = 1.0;
+
+        // Name
+        ctx.fillStyle = 'white';
+        ctx.font = 'bold 14px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(p.name, rx + P_W/2, ry - 15);
+
+        // Health Bar
+        let hpPct = p.hp / p.maxHp;
+        ctx.fillStyle = 'red';
+        ctx.fillRect(rx - 10, ry - 10, P_W + 20, 6);
+        ctx.fillStyle = '#10b981';
+        ctx.fillRect(rx - 10, ry - 10, (P_W + 20) * hpPct, 6);
+    }
+
+    // Draw Drops (XP/Life)
+    for(let d of localState.drops) {
+        ctx.fillStyle = '#fbbf24'; // Yellow
+        ctx.beginPath();
+        ctx.arc(d[0], d[1], 8, 0, Math.PI*2);
+        ctx.fill();
+        ctx.fillStyle = 'white';
+        ctx.font = '10px sans-serif';
+        ctx.fillText("XP", d[0], d[1]+3);
+    }
+
+    // Draw Bullets
+    ctx.fillStyle = '#fde047';
+    for(let b of localState.bullets) {
+        ctx.beginPath();
+        ctx.arc(b[0], b[1], 4, 0, Math.PI*2);
+        ctx.fill();
+    }
+
+    // Draw Grenades
+    ctx.fillStyle = '#ea580c';
+    for(let g of localState.grenades) {
+        ctx.beginPath();
+        ctx.arc(g[0], g[1], 6, 0, Math.PI*2);
+        ctx.fill();
+    }
+
+    // Process & Draw Effects
+    for(let i = clientEffects.length - 1; i >= 0; i--) {
+        let e = clientEffects[i];
+        if(e.type === 'grenade') {
+            e.radius += 15;
+            e.alpha -= 0.05;
+            ctx.fillStyle = `rgba(234, 88, 12, ${e.alpha})`;
+            ctx.beginPath(); ctx.arc(e.x, e.y, e.radius, 0, Math.PI*2); ctx.fill();
+        } else if (e.type === 'pound') {
+            e.radius += 20;
+            e.alpha -= 0.08;
+            ctx.fillStyle = `rgba(56, 189, 248, ${e.alpha})`;
+            ctx.fillRect(e.x - e.radius, e.y - 10, e.radius*2, 20);
+        }
+        if(e.alpha <= 0) clientEffects.splice(i, 1);
+    }
+
+    ctx.restore();
+
+    // Update HUD
+    if(me && (isHost ? hostPlaying : true)) {
+        document.getElementById('hud-overlay').classList.remove('hidden');
+        document.getElementById('hud-hp').innerText = Math.round(me.hp);
+        document.getElementById('hud-maxhp').innerText = me.maxHp;
+        document.getElementById('hud-xp').innerText = me.xp;
+        
+        let unlocks = [];
+        if(me.xp >= UNLOCKS.DASH) unlocks.push("Dash");
+        if(me.xp >= UNLOCKS.POUND) unlocks.push("Ground Pound");
+        if(me.xp >= UNLOCKS.HIGH_JUMP) unlocks.push("High Jump");
+        document.getElementById('hud-unlocks').innerText = "Unlocks: " + (unlocks.length > 0 ? unlocks.join(', ') : "None");
+
+        let dashPct = me.dashCd <= 0 ? 100 : 100 - (me.dashCd / 1500)*100;
+        let grenPct = me.grenadeCd <= 0 ? 100 : 100 - (me.grenadeCd / 5000)*100;
+        
+        document.getElementById('hud-dash-cd').style.width = dashPct + '%';
+        document.getElementById('hud-grenade-cd').style.width = grenPct + '%';
+
+        if(me.dead) {
+            document.getElementById('respawn-overlay').classList.remove('hidden');
+            document.getElementById('respawn-timer').innerText = Math.ceil(me.deadTimer / 1000);
+        } else {
+            document.getElementById('respawn-overlay').classList.add('hidden');
+        }
+    } else {
+        document.getElementById('hud-overlay').classList.add('hidden');
+    }
+
+    requestAnimationFrame(renderLoop);
+}
+
+// --- INIT BUTTONS ---
+document.getElementById('btn-host-menu').addEventListener('click', () => {
+    myName = document.getElementById('player-name').value.trim() || "HostPlayer";
+    startHostGame();
 });
 
-CANVAS.addEventListener('mousedown', (e) => {
-    if (e.button === 0) mouseDown = true;
-    if (e.button === 2) rightClick = true;
+document.getElementById('btn-join').addEventListener('click', () => {
+    myName = document.getElementById('player-name').value.trim() || "Player" + Math.floor(Math.random()*100);
+    let code = document.getElementById('join-code').value.trim();
+    if(code.length < 4) return showMenuError("Please enter a valid room code.");
+    joinGame(code);
 });
 
-CANVAS.addEventListener('mouseup', (e) => {
-    if (e.button === 0) mouseDown = false;
-    if (e.button === 2) rightClick = false;
-});
-
-// Prevent context menu
-window.addEventListener('contextmenu', e => e.preventDefault());
+// Setup Initial Screen
+document.getElementById('player-name').value = "Player" + Math.floor(Math.random()*999);
 
 </script>
 </body>
