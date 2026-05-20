@@ -1,1046 +1,1186 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Homework Radio Station & Study Lounge</title>
-  <!-- Tailwind CSS -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <!-- PeerJS for seamless WebRTC P2P communication -->
-  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
-  <!-- Google Fonts -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
-  
-  <script>
-    tailwind.config = {
-      darkMode: 'class',
-      theme: {
-        extend: {
-          fontFamily: {
-            sans: ['Plus Jakarta Sans', 'sans-serif'],
-            display: ['Space Grotesk', 'sans-serif'],
-          }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Biome Arena</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap');
+        body { font-family: 'Fredoka', sans-serif; overflow: hidden; background-color: #1a1a2e; color: white; user-select: none; }
+        canvas { display: block; width: 100vw; height: 100vh; image-rendering: pixelated; }
+        
+        .ui-panel { background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.1); }
+        .btn { transition: all 0.2s; text-transform: uppercase; font-weight: bold; letter-spacing: 1px; }
+        .btn:hover { transform: translateY(-2px); filter: brightness(1.1); }
+        .btn:active { transform: translateY(0); }
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.4); }
+
+        .crt-effect {
+            pointer-events: none;
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%);
+            background-size: 100% 4px;
+            z-index: 100; opacity: 0.3;
         }
-      }
-    }
-  </script>
-  <style>
-    body {
-      background: radial-gradient(circle at top right, #111827 0%, #030712 100%);
-    }
-    .lofi-glow {
-      box-shadow: 0 0 20px rgba(244, 63, 94, 0.15);
-    }
-    .custom-scrollbar::-webkit-scrollbar {
-      width: 6px;
-    }
-    .custom-scrollbar::-webkit-scrollbar-track {
-      background: transparent;
-    }
-    .custom-scrollbar::-webkit-scrollbar-thumb {
-      background: #374151;
-      border-radius: 10px;
-    }
-    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-      background: #4b5563;
-    }
-  </style>
+
+        #game-ui { display: none; }
+        #host-sidebar { display: none; transition: transform 0.3s ease; }
+        .sidebar-open { transform: translateX(0); }
+        .sidebar-closed { transform: translateX(100%); }
+
+        .stat-bar-container { background: #333; border: 2px solid #222; border-radius: 8px; overflow: hidden; position: relative; }
+        .stat-bar-fill { height: 100%; transition: width 0.1s linear; }
+        .stat-text { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; text-shadow: 1px 1px 0 #000; }
+        
+        .ability-icon { width: 40px; height: 40px; border-radius: 8px; background: #333; border: 2px solid #555; display: flex; justify-content: center; align-items: center; font-size: 20px; color: #888; transition: all 0.2s; position: relative; }
+        .ability-icon.active { border-color: #fbbf24; color: #fbbf24; background: #453205; box-shadow: 0 0 10px rgba(251, 191, 36, 0.5); }
+        .cooldown-overlay { position: absolute; bottom: 0; left: 0; width: 100%; background: rgba(0,0,0,0.7); height: 0%; transition: height 0.1s linear; border-radius: 6px; }
+
+        .dead-screen { background: rgba(100, 0, 0, 0.8); display: none; }
+    </style>
 </head>
-<body class="text-slate-100 min-h-screen flex flex-col justify-between font-sans selection:bg-rose-500/30 selection:text-rose-200">
+<body class="w-full h-full relative">
 
-  <!-- Header Banner -->
-  <header class="border-b border-slate-800/80 bg-slate-950/60 backdrop-blur-md sticky top-0 z-40 transition-all">
-    <div class="max-w-6xl mx-auto px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-4">
-      <div class="flex items-center gap-3">
-        <div class="w-11 h-11 rounded-2xl bg-gradient-to-tr from-rose-500 to-amber-500 flex items-center justify-center shadow-lg shadow-rose-500/20">
-          <svg class="w-6 h-6 text-slate-950" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M9 9l10.5-3m0 0L21 8.25M19.5 6v12m-3-12v12M9 9h10.5M9 9V18c0 .828-.672 1.5-1.5 1.5s-1.5-.672-1.5-1.5 1.5-1.5 1.5-1.5H9m0-9L3 11.25M3 11.25L4.5 13.5M3 11.25V18c0 .828.672 1.5 1.5 1.5s1.5-.672 1.5-1.5S5.328 15 4.5 15H3" />
-          </svg>
-        </div>
-        <div>
-          <h1 class="text-xl font-bold font-display tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-rose-200 via-amber-200 to-amber-100">Homework Radio</h1>
-          <p class="text-xs text-slate-400">P2P Study Room & Real-time Live Audio Streamer</p>
-        </div>
-      </div>
+    <!-- Main Menu -->
+    <div id="main-menu" class="absolute inset-0 flex flex-col items-center justify-center z-50 bg-[#0f172a] bg-opacity-95">
+        <h1 class="text-6xl font-black mb-2 text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-purple-500 to-pink-500 tracking-tighter drop-shadow-lg">BIOME ARENA</h1>
+        <p class="text-gray-400 mb-10 font-bold tracking-widest">MULTIPLAYER CHAOS</p>
+        
+        <div class="ui-panel p-8 rounded-2xl w-96 flex flex-col gap-6 shadow-2xl">
+            <div>
+                <label class="block text-sm text-gray-400 mb-1">Player Name</label>
+                <input type="text" id="player-name" class="w-full bg-slate-800 text-white border border-slate-600 rounded-lg px-4 py-3 outline-none focus:border-cyan-400 transition-colors" placeholder="Enter your legend name" maxlength="20">
+            </div>
 
-      <!-- Quick Room Code / Connection Info -->
-      <div class="flex items-center gap-3">
-        <div id="connectionIndicator" class="flex items-center gap-2 bg-slate-900 px-3 py-1.5 rounded-full border border-slate-800 text-xs">
-          <span class="w-2.5 h-2.5 rounded-full bg-slate-500" id="indicatorDot"></span>
-          <span id="indicatorText" class="text-slate-400">Offline</span>
+            <div class="border-t border-slate-700 my-2 relative">
+                <span class="absolute left-1/2 -translate-x-1/2 -top-3 bg-slate-800 px-2 text-xs text-gray-500">JOIN</span>
+            </div>
+
+            <div class="flex gap-2">
+                <input type="text" id="join-code" class="flex-1 bg-slate-800 text-white border border-slate-600 rounded-lg px-4 py-3 outline-none focus:border-pink-400 font-mono text-center uppercase" placeholder="HOST CODE" maxlength="6">
+                <button id="btn-join" class="btn bg-pink-600 hover:bg-pink-500 text-white rounded-lg px-6 py-3 shadow-[0_0_15px_rgba(219,39,119,0.5)]">Join</button>
+            </div>
+
+            <div class="border-t border-slate-700 my-2 relative">
+                <span class="absolute left-1/2 -translate-x-1/2 -top-3 bg-slate-800 px-2 text-xs text-gray-500">OR</span>
+            </div>
+
+            <button id="btn-host" class="btn bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg px-4 py-4 w-full shadow-[0_0_15px_rgba(8,145,178,0.5)] text-lg">Create Hosted World</button>
+            <p id="menu-status" class="text-center text-sm text-yellow-400 h-4"></p>
         </div>
-      </div>
     </div>
-  </header>
 
-  <!-- Main Workspaces -->
-  <main class="max-w-6xl mx-auto px-4 py-6 flex-grow w-full grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-    
-    <!-- Left Hand Side: Controls, Host Setup, and Stream Stats (5 Cols) -->
-    <div class="lg:col-span-5 flex flex-col gap-6 w-full">
-      
-      <!-- Welcome Card -->
-      <div class="bg-gradient-to-br from-slate-900/90 to-slate-950/90 border border-slate-800 rounded-2xl p-6 relative overflow-hidden">
-        <div class="absolute top-0 right-0 w-32 h-32 bg-rose-500/5 rounded-full blur-3xl pointer-events-none"></div>
-        <h2 class="text-lg font-bold font-display text-rose-300 mb-2">Welcome to Study Lounge! ☕</h2>
-        <p class="text-xs text-slate-300 leading-relaxed">
-          Create your own broadcast channel to play study jams, lo-fi tracks, or host a focus session. Or, simply tune in to another room to chat with peers, choose a cool avatar color, and listen together!
-        </p>
-      </div>
+    <!-- Game Canvas -->
+    <canvas id="gameCanvas"></canvas>
+    <div class="crt-effect"></div>
 
-      <!-- Station Control Hub -->
-      <div class="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-6 backdrop-blur-md">
-        <h3 class="text-sm font-bold font-display uppercase tracking-wider text-slate-400 mb-4 flex items-center gap-2">
-          <span class="w-2 h-2 rounded-full bg-rose-500"></span> Station Deck
-        </h3>
-
-        <!-- Initial Mode Selection Tabs -->
-        <div id="deckSelectionArea" class="space-y-4">
-          <div class="grid grid-cols-2 gap-2 p-1 bg-slate-950 rounded-xl border border-slate-800/80">
-            <button id="tabTuneIn" class="py-2.5 text-sm font-semibold rounded-lg transition-all text-rose-400 bg-slate-900 border border-slate-800">
-              🎵 Tune In
-            </button>
-            <button id="tabHost" class="py-2.5 text-sm font-semibold rounded-lg transition-all text-slate-400 hover:text-slate-200">
-              🎙️ Host Radio
-            </button>
-          </div>
-
-          <!-- Tune-In Form -->
-          <div id="tuneInForm" class="space-y-4 pt-2">
-            <div>
-              <label class="block text-xs font-semibold text-slate-400 mb-1.5">Your Nickname</label>
-              <input type="text" id="listenerName" placeholder="StudyBuddy" maxlength="15" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:border-rose-500 transition-colors">
+    <!-- In-Game UI -->
+    <div id="game-ui" class="absolute inset-0 pointer-events-none z-30">
+        
+        <!-- Top Left: Stats -->
+        <div class="absolute top-4 left-4 flex flex-col gap-2 w-64 pointer-events-auto">
+            <!-- HP Bar -->
+            <div class="stat-bar-container h-8">
+                <div id="hp-bar" class="stat-bar-fill bg-gradient-to-r from-red-600 to-red-400" style="width: 100%;"></div>
+                <div class="stat-text"><span id="hp-text">1000/1000</span></div>
             </div>
-
-            <div>
-              <label class="block text-xs font-semibold text-slate-400 mb-1.5">Avatar Base Color</label>
-              <div class="flex items-center gap-2.5">
-                <input type="color" id="avatarColor" value="#f43f5e" class="w-10 h-10 rounded-xl border-0 bg-transparent cursor-pointer">
-                <span class="text-xs text-slate-400">Click to pick your signature chat shade</span>
-              </div>
+            <!-- XP Bar -->
+            <div class="stat-bar-container h-6 border-slate-600 border">
+                <div id="xp-bar" class="stat-bar-fill bg-gradient-to-r from-blue-600 to-cyan-400" style="width: 0%;"></div>
+                <div class="stat-text text-white">Lvl <span id="lvl-text">1</span> | <span id="xp-text">0</span> XP</div>
             </div>
-
-            <div>
-              <label class="block text-xs font-semibold text-slate-400 mb-1.5">Station Room Code</label>
-              <input type="text" id="listenerRoom" value="study-lounge" placeholder="e.g. study-lounge" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:border-rose-500 transition-colors font-mono">
-            </div>
-
-            <button id="btnStartListening" class="w-full py-3 bg-gradient-to-r from-rose-500 to-amber-500 hover:from-rose-400 hover:to-amber-400 text-slate-950 font-bold rounded-xl transition-all shadow-md active:scale-98 flex items-center justify-center gap-2">
-              <svg class="w-4 h-4 stroke-[2.5]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M19.114 5.636a9 9 0 0 1 0 12.728M16.463 8.288a5.25 5.25 0 0 1 0 7.424M6.75 8.25l4.72-4.72a.75.75 0 0 1 1.28.53v15.88a.75.75 0 0 1-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.009 9.009 0 0 1 2.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75Z" />
-              </svg>
-              Join Station
-            </button>
-          </div>
-
-          <!-- Host-Station Form -->
-          <div id="hostForm" class="space-y-4 pt-2 hidden">
-            <div class="bg-amber-500/10 border border-amber-500/20 rounded-xl p-3 text-xs text-amber-200 leading-relaxed mb-1">
-              <strong>🎙️ Broadcaster Notice:</strong> Streaming requires you to share a tab/window with audio enabled so PeerJS can loop your feed directly to students.
-            </div>
-
-            <div>
-              <label class="block text-xs font-semibold text-slate-400 mb-1.5">Broadcaster Password</label>
-              <input type="password" id="hostPassword" placeholder="Enter Host Password" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:border-rose-500 transition-colors">
-            </div>
-
-            <div>
-              <label class="block text-xs font-semibold text-slate-400 mb-1.5">Station Room Code</label>
-              <input type="text" id="hostRoom" value="study-lounge" placeholder="e.g. study-lounge" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:border-rose-500 transition-colors font-mono">
-            </div>
-
-            <button id="btnStartHosting" class="w-full py-3 bg-gradient-to-r from-amber-500 to-rose-500 hover:from-amber-400 hover:to-rose-400 text-slate-950 font-bold rounded-xl transition-all shadow-md active:scale-98 flex items-center justify-center gap-2">
-              <svg class="w-4 h-4 stroke-[2.5]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 18.75a6 6 0 0 0 6-6v-1.5m-6 7.5a6 6 0 0 1-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 0 1-3-3V4.5a3 3 0 1 1 6 0v8.25a3 3 0 0 1-3 3Z" />
-              </svg>
-              Go Live & Share Sound
-            </button>
-          </div>
         </div>
 
-        <!-- Active Mode Dashboard UI (Hidden until linked) -->
-        <div id="activeDashboard" class="hidden space-y-4">
-          <!-- Active Status Badge -->
-          <div class="p-4 bg-slate-950 rounded-2xl border border-slate-800 flex items-center justify-between">
-            <div>
-              <span class="text-[10px] font-bold text-rose-400 uppercase tracking-wider" id="activeLabel">Broadcasting</span>
-              <h4 class="font-display font-semibold text-sm" id="activeRoomName">study-lounge</h4>
-            </div>
-            <button id="btnLeaveSession" class="text-xs px-3 py-1.5 bg-rose-500/10 border border-rose-500/20 text-rose-400 font-semibold hover:bg-rose-500/20 rounded-lg transition-all">
-              Disconnect
-            </button>
-          </div>
+        <!-- Bottom Center: Abilities -->
+        <div class="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-4 pointer-events-auto ui-panel p-2 rounded-xl">
+            <div class="ability-icon active" title="Pistol (Left Click)">🔫<div id="cd-shoot" class="cooldown-overlay"></div></div>
+            <div class="ability-icon active" title="Grenade (Right Click)">💣<div id="cd-grenade" class="cooldown-overlay"></div></div>
+            <div id="icon-jump" class="ability-icon active" title="Double Jump (Space in air)">⏫</div>
+            <div id="icon-dash" class="ability-icon" title="Dash (Double tap A/D)">💨<div id="cd-dash" class="cooldown-overlay"></div></div>
+            <div id="icon-pound" class="ability-icon" title="Ground Pound (S in air)">☄️<div id="cd-pound" class="cooldown-overlay"></div></div>
+        </div>
 
-          <!-- Audio Stream Output Control / Visualizer -->
-          <div id="receiverPlayerBlock" class="p-4 bg-slate-950/60 border border-slate-800 rounded-2xl hidden">
-            <div class="flex items-center justify-between mb-3">
-              <span class="text-[10px] font-mono text-slate-400">Stream Playback</span>
-              <div class="flex items-center gap-1.5">
-                <span class="w-2 h-2 rounded-full bg-rose-500 animate-ping"></span>
-                <span class="text-[10px] text-rose-400 uppercase font-semibold">Tuned In</span>
-              </div>
+        <!-- Host Code Display -->
+        <div id="host-code-display" class="absolute top-4 right-4 pointer-events-auto ui-panel px-4 py-2 rounded-lg hidden flex gap-3 items-center">
+            <span class="text-sm text-gray-400">Code:</span>
+            <span id="current-code" class="font-mono text-xl text-cyan-400 font-bold select-all cursor-pointer" title="Click to copy">------</span>
+            <button id="toggle-host-panel" class="bg-slate-700 hover:bg-slate-600 p-2 rounded ml-2" title="Toggle Host Menu">⚙️</button>
+        </div>
+
+        <!-- Dead Screen -->
+        <div id="dead-screen" class="dead-screen absolute inset-0 flex flex-col items-center justify-center pointer-events-auto backdrop-blur-sm z-40">
+            <h1 class="text-7xl font-black text-red-500 mb-4 drop-shadow-[0_5px_10px_rgba(0,0,0,0.8)]">WASTED</h1>
+            <p class="text-2xl mb-8">Respawning in <span id="respawn-timer" class="text-yellow-400 font-bold">15</span>s</p>
+            <p class="text-gray-300">You lost all your XP.</p>
+        </div>
+    </div>
+
+    <!-- Host Sidebar -->
+    <div id="host-sidebar" class="absolute top-0 right-0 h-full w-80 ui-panel z-40 sidebar-closed flex flex-col shadow-[-10px_0_30px_rgba(0,0,0,0.5)]">
+        <div class="p-4 border-b border-slate-700 flex justify-between items-center bg-slate-800">
+            <h2 class="text-xl font-bold text-cyan-400">Host Control</h2>
+            <button id="close-host-panel" class="text-gray-400 hover:text-white text-2xl leading-none">&times;</button>
+        </div>
+        
+        <div class="p-4 border-b border-slate-700">
+            <h3 class="text-sm text-gray-500 mb-2 uppercase font-bold tracking-wider">Host State</h3>
+            <div class="flex items-center gap-2 mb-2">
+                <input type="checkbox" id="host-play-toggle" checked class="w-4 h-4 accent-cyan-500 cursor-pointer">
+                <label for="host-play-toggle" class="cursor-pointer text-sm">Host is Playing</label>
             </div>
+            <p class="text-xs text-gray-400">If unchecked, host will just spectate.</p>
+        </div>
+
+        <div class="p-4 flex-1 overflow-y-auto">
+            <h3 class="text-sm text-gray-500 mb-2 uppercase font-bold tracking-wider">Players (<span id="player-count">0</span>)</h3>
+            <div id="player-list" class="flex flex-col gap-2">
+                <!-- Players injected here -->
+            </div>
+        </div>
+    </div>
+
+<script>
+/**
+ * BIOME ARENA - Core Logic
+ */
+
+// --- Constants & Config ---
+const CONFIG = {
+    FPS: 60,
+    TICK_RATE: 30, // Network sends per second
+    TILE_SIZE: 40,
+    GRAVITY: 0.8,
+    TERMINAL_VELOCITY: 20,
+    MAP_WIDTH_TILES: 250, // 10,000px wide
+    MAP_HEIGHT_TILES: 40, // 1,600px high
+    
+    // Player
+    BASE_HP: 1000,
+    MOVE_SPEED: 6,
+    JUMP_FORCE: 14,
+    DOUBLE_JUMP_FORCE: 12,
+    RESPAWN_TIME: 15000,
+    IFRAME_TIME: 2000,
+    
+    // Combat
+    SHOOT_COOLDOWN: 200,
+    GRENADE_COOLDOWN: 5000,
+    DASH_COOLDOWN: 2000,
+    POUND_COOLDOWN: 3000,
+    
+    // Abilities/Levels
+    XP_PER_KILL_BASE: 100,
+    LVL_2_XP: 100,  // unlocks nothing (double jump default) but increases hp
+    LVL_3_XP: 300,  // dash
+    LVL_4_XP: 600,  // pound
+    
+    // Biomes (X coordinates in px)
+    BIOME_ICE_END: 3000,
+    BIOME_FOREST_END: 7000,
+};
+
+// Tile Types
+const T_AIR = 0;
+const T_DIRT = 1;
+const T_GRASS = 2;
+const T_ICE_DEEP = 3;
+const T_ICE_SURFACE = 4;
+const T_MUD = 5;
+const T_JUNGLE_GRASS = 6;
+const T_BOUNCE = 7;
+const T_WALL = 8; // Invisible boundary
+
+// --- Utility Math ---
+const clamp = (num, min, max) => Math.min(Math.max(num, min), max);
+const distance = (x1, y1, x2, y2) => Math.sqrt((x2-x1)**2 + (y2-y1)**2);
+const rectIntersect = (r1, r2) => {
+    return !(r2.x > r1.x + r1.w || 
+             r2.x + r2.w < r1.x || 
+             r2.y > r1.y + r1.h ||
+             r2.y + r2.h < r1.y);
+};
+const generateId = () => Math.random().toString(36).substring(2, 8).toUpperCase();
+
+// --- Map Generator ---
+function generateMap() {
+    let map = [];
+    for (let y = 0; y < CONFIG.MAP_HEIGHT_TILES; y++) {
+        let row = [];
+        for (let x = 0; x < CONFIG.MAP_WIDTH_TILES; x++) {
+            let px = x * CONFIG.TILE_SIZE;
             
-            <div class="flex items-center gap-3">
-              <div class="w-9 h-9 rounded-lg bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400">
-                <svg class="w-5 h-5 animate-bounce" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M19.114 5.636a9 9 0 0 1 0 12.728M16.463 8.288a5.25 5.25 0 0 1 0 7.424M6.75 8.25l4.72-4.72a.75.75 0 0 1 1.28.53v15.88a.75.75 0 0 1-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.009 9.009 0 0 1 2.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75Z" />
-                </svg>
-              </div>
-              <div class="flex-grow">
-                <!-- Volume Control -->
-                <input type="range" id="listenerVolume" min="0" max="1" step="0.05" value="0.8" class="w-full accent-rose-500 h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer">
-              </div>
-              <span class="text-xs font-mono text-slate-400" id="volumePercentage">80%</span>
-            </div>
-          </div>
+            // Floor
+            if (y >= CONFIG.MAP_HEIGHT_TILES - 4) {
+                if (px < CONFIG.BIOME_ICE_END) row.push(y === CONFIG.MAP_HEIGHT_TILES - 4 ? T_ICE_SURFACE : T_ICE_DEEP);
+                else if (px < CONFIG.BIOME_FOREST_END) row.push(y === CONFIG.MAP_HEIGHT_TILES - 4 ? T_GRASS : T_DIRT);
+                else row.push(y === CONFIG.MAP_HEIGHT_TILES - 4 ? T_JUNGLE_GRASS : T_MUD);
+                continue;
+            }
 
-          <!-- Live Frequency Spectrogram Area -->
-          <div class="relative bg-slate-950 border border-slate-800 rounded-2xl h-32 overflow-hidden">
-            <canvas id="liveVizCanvas" class="w-full h-full absolute inset-0 opacity-85"></canvas>
-            <div class="absolute bottom-2.5 left-3 text-[10px] font-mono text-slate-500 bg-slate-950/80 px-2 py-0.5 rounded border border-slate-800/60">
-              Live Spectrum Wave
-            </div>
-          </div>
+            // Boundaries
+            if (x === 0 || x === CONFIG.MAP_WIDTH_TILES - 1 || y === 0) {
+                row.push(T_WALL);
+                continue;
+            }
 
-          <!-- Peer List & Quick Room stats -->
-          <div class="bg-slate-950/40 border border-slate-800 rounded-xl p-3.5 space-y-2">
-            <div class="flex items-center justify-between text-xs text-slate-400">
-              <span>Listeners Connected</span>
-              <span id="txtPeerCount" class="font-bold text-rose-400">0</span>
-            </div>
-            <div class="flex items-center justify-between text-xs text-slate-400">
-              <span>Radio Status</span>
-              <span id="txtStatusLabel" class="font-bold text-amber-400">Ready</span>
-            </div>
-          </div>
-        </div>
+            // Procedural Platforms
+            row.push(T_AIR);
+        }
+        map.push(row);
+    }
 
-      </div>
-
-    </div>
-
-    <!-- Right Hand Side: Interactive Chat & Custom Lounge (7 Cols) -->
-    <div class="lg:col-span-7 flex flex-col gap-6 w-full">
-      
-      <!-- Chat Area Box -->
-      <div class="bg-slate-900/60 border border-slate-800/80 rounded-3xl p-5 backdrop-blur-md flex flex-col h-[520px] shadow-xl relative overflow-hidden">
+    // Add random platforms based on biomes
+    for (let i = 0; i < 80; i++) {
+        let px = Math.random() * (CONFIG.MAP_WIDTH_TILES * CONFIG.TILE_SIZE - 200) + 100;
+        let tx = Math.floor(px / CONFIG.TILE_SIZE);
+        let ty = Math.floor(Math.random() * (CONFIG.MAP_HEIGHT_TILES - 10)) + 5;
+        let pWidth = Math.floor(Math.random() * 6) + 3;
         
-        <!-- Chat Header -->
-        <div class="flex items-center justify-between pb-3.5 border-b border-slate-800/80 mb-4">
-          <div class="flex items-center gap-2.5">
-            <div class="w-2.5 h-2.5 rounded-full bg-emerald-500" id="chatHeaderPulse"></div>
-            <div>
-              <h3 class="font-bold font-display text-sm text-slate-200" id="chatRoomHeader">Lounge Chatroom</h3>
-              <p class="text-[10px] text-slate-400" id="chatRoomSubtitle">Broadcast offline. Hangout mode active.</p>
-            </div>
-          </div>
-          <span class="text-[10px] font-mono text-slate-400 bg-slate-950 px-2.5 py-1 rounded-full border border-slate-800/80" id="lobbyStatusBadge">Lounge Mode</span>
-        </div>
+        let typeSurface, typeDeep;
+        if (px < CONFIG.BIOME_ICE_END) { typeSurface = T_ICE_SURFACE; typeDeep = T_ICE_DEEP; }
+        else if (px < CONFIG.BIOME_FOREST_END) { typeSurface = T_GRASS; typeDeep = T_DIRT; }
+        else { typeSurface = T_JUNGLE_GRASS; typeDeep = T_MUD; }
 
-        <!-- Scrollable Messages list -->
-        <div id="chatMessages" class="flex-grow overflow-y-auto custom-scrollbar space-y-3.5 pr-2">
-          <!-- Welcome message -->
-          <div class="flex items-start gap-3 bg-slate-950/30 p-3 rounded-2xl border border-slate-800/30">
-            <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-amber-500 to-rose-500 flex items-center justify-center text-xs font-bold text-slate-950">📻</div>
-            <div class="flex-grow">
-              <div class="flex items-baseline gap-2">
-                <span class="text-xs font-bold text-rose-300">Homework Radio Desk</span>
-                <span class="text-[9px] text-slate-500">System</span>
-              </div>
-              <p class="text-xs text-slate-300 leading-relaxed mt-0.5">
-                Hey study club! This room is your digital desk. Enter a room name to join other students, select a custom chat color, and chat live while playing background audio! Keep focused and have fun! 📚
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <!-- Chat input dock -->
-        <form id="chatForm" class="mt-4 flex gap-2.5 items-center">
-          <input type="text" id="chatInput" disabled placeholder="Join a room to send messages..." class="flex-grow bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-rose-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-          <button type="submit" id="btnSendChat" disabled class="px-5 py-3 bg-rose-500 hover:bg-rose-400 text-slate-950 font-bold text-sm rounded-xl transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed">
-            Send
-          </button>
-        </form>
-
-      </div>
-
-    </div>
-
-  </main>
-
-  <!-- Global Custom Warning Modal -->
-  <div id="modalOverlay" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 flex items-center justify-center hidden p-4">
-    <div class="bg-slate-900 border border-slate-800 max-w-md w-full rounded-3xl p-6 shadow-2xl relative">
-      <div id="modalIconContainer" class="w-12 h-12 rounded-xl bg-rose-500/10 border border-rose-500/25 flex items-center justify-center text-rose-400 mb-4">
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
-        </svg>
-      </div>
-
-      <h3 id="modalTitle" class="text-lg font-bold font-display text-slate-100 mb-2">Error Alert</h3>
-      <p id="modalDescription" class="text-sm text-slate-400 leading-relaxed mb-6"></p>
-
-      <div class="flex items-center gap-3">
-        <button id="modalBtnClose" class="w-full py-3 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold rounded-xl transition-colors text-sm">
-          Acknowledge
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Footer block -->
-  <footer class="border-t border-slate-900/80 bg-slate-950/60 py-5 text-center text-xs text-slate-500">
-    <div class="max-w-6xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
-      <p>&copy; 2026 Homework Radio Station. Decentralized Study Hub.</p>
-      <div class="flex items-center gap-4 text-[11px] text-slate-400">
-        <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-emerald-500"></span> Fully Encrypted</span>
-        <span>Made for productive students worldwide</span>
-      </div>
-    </div>
-  </footer>
-
-  <!-- Application Logic -->
-  <script>
-    // Configuration
-    const HOST_PASSWORD = "Bryant Reitzel";
-
-    // Application State Variables
-    let peer = null;
-    let localStream = null;
-    let remoteStream = null;
-    let activeConnections = []; // Data connections (chat + peer lists)
-    let activeCalls = []; // Outgoing calls to listeners
-    let incomingCall = null;
-    
-    // Web Audio State
-    let audioCtx = null;
-    let analyzer = null;
-    let dataArray = null;
-    let visualizerAnimId = null;
-
-    // User metadata
-    let currentUserRole = null; // 'host' or 'listener'
-    let currentRoomId = "study-lounge";
-    let myNickname = "Anonymous";
-    let myColor = "#f43f5e";
-
-    // Sub-lobbies (when host is offline, listeners coordinate amongst themselves)
-    let isLobbyCoordinator = false;
-
-    // Grab elements
-    const tabTuneIn = document.getElementById('tabTuneIn');
-    const tabHost = document.getElementById('tabHost');
-    const tuneInForm = document.getElementById('tuneInForm');
-    const hostForm = document.getElementById('hostForm');
-    
-    const listenerName = document.getElementById('listenerName');
-    const avatarColor = document.getElementById('avatarColor');
-    const listenerRoom = document.getElementById('listenerRoom');
-    const btnStartListening = document.getElementById('btnStartListening');
-    
-    const hostPassword = document.getElementById('hostPassword');
-    const hostRoom = document.getElementById('hostRoom');
-    const btnStartHosting = document.getElementById('btnStartHosting');
-
-    const deckSelectionArea = document.getElementById('deckSelectionArea');
-    const activeDashboard = document.getElementById('activeDashboard');
-    const activeLabel = document.getElementById('activeLabel');
-    const activeRoomName = document.getElementById('activeRoomName');
-    const btnLeaveSession = document.getElementById('btnLeaveSession');
-    const txtPeerCount = document.getElementById('txtPeerCount');
-    const txtStatusLabel = document.getElementById('txtStatusLabel');
-    
-    const receiverPlayerBlock = document.getElementById('receiverPlayerBlock');
-    const listenerVolume = document.getElementById('listenerVolume');
-    const volumePercentage = document.getElementById('volumePercentage');
-    
-    const liveVizCanvas = document.getElementById('liveVizCanvas');
-    const vizCtx = liveVizCanvas.getContext('2d');
-
-    const chatMessages = document.getElementById('chatMessages');
-    const chatInput = document.getElementById('chatInput');
-    const btnSendChat = document.getElementById('btnSendChat');
-    const chatForm = document.getElementById('chatForm');
-    const chatRoomHeader = document.getElementById('chatRoomHeader');
-    const chatRoomSubtitle = document.getElementById('chatRoomSubtitle');
-    const lobbyStatusBadge = document.getElementById('lobbyStatusBadge');
-    const chatHeaderPulse = document.getElementById('chatHeaderPulse');
-
-    const indicatorDot = document.getElementById('indicatorDot');
-    const indicatorText = document.getElementById('indicatorText');
-
-    const modalOverlay = document.getElementById('modalOverlay');
-    const modalTitle = document.getElementById('modalTitle');
-    const modalDescription = document.getElementById('modalDescription');
-    const modalBtnClose = document.getElementById('modalBtnClose');
-
-    // UI Tab toggle
-    tabTuneIn.addEventListener('click', () => {
-      tabTuneIn.className = "py-2.5 text-sm font-semibold rounded-lg transition-all text-rose-400 bg-slate-900 border border-slate-800";
-      tabHost.className = "py-2.5 text-sm font-semibold rounded-lg transition-all text-slate-400 hover:text-slate-200";
-      tuneInForm.classList.remove('hidden');
-      hostForm.classList.add('hidden');
-    });
-
-    tabHost.addEventListener('click', () => {
-      tabHost.className = "py-2.5 text-sm font-semibold rounded-lg transition-all text-rose-400 bg-slate-900 border border-slate-800";
-      tabTuneIn.className = "py-2.5 text-sm font-semibold rounded-lg transition-all text-slate-400 hover:text-slate-200";
-      hostForm.classList.remove('hidden');
-      tuneInForm.classList.add('hidden');
-    });
-
-    // Alert Utilities
-    function showModal(title, text) {
-      modalTitle.innerText = title;
-      modalDescription.innerHTML = text;
-      modalOverlay.classList.remove('hidden');
+        for(let w=0; w<pWidth; w++) {
+            if(tx+w < CONFIG.MAP_WIDTH_TILES-1) {
+                map[ty][tx+w] = typeSurface;
+                if(Math.random() > 0.5) map[ty+1][tx+w] = typeDeep;
+                
+                // Jungle bouncy shrooms
+                if (typeSurface === T_JUNGLE_GRASS && Math.random() < 0.1 && w === Math.floor(pWidth/2)) {
+                    map[ty-1][tx+w] = T_BOUNCE;
+                }
+            }
+        }
     }
-    modalBtnClose.addEventListener('click', () => {
-      modalOverlay.classList.add('hidden');
-    });
+    return map;
+}
 
-    // Generate unique random string for user peer IDs
-    function makeId(length) {
-      let result = '';
-      const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-      for (let i = 0; i < length; i++) {
-        result += characters.charAt(Math.floor(Math.random() * characters.length));
-      }
-      return result;
+// --- Game Engine (Runs Authoritatively on Host) ---
+class GameEngine {
+    constructor() {
+        this.map = generateMap();
+        this.players = {};
+        this.projectiles = [];
+        this.items = [];
+        this.particles = []; // Server visual hints
+        this.lastUpdateTime = performance.now();
     }
 
-    // Connect display spectrum
-    function initVisualizer(stream) {
-      // Disconnect old animation
-      if (visualizerAnimId) {
-        cancelAnimationFrame(visualizerAnimId);
-      }
+    addPlayer(id, name) {
+        this.players[id] = {
+            id, name,
+            x: Math.random() * (CONFIG.MAP_WIDTH_TILES * CONFIG.TILE_SIZE - 200) + 100,
+            y: 100,
+            w: 30, h: 40,
+            vx: 0, vy: 0,
+            hp: CONFIG.BASE_HP, maxHp: CONFIG.BASE_HP,
+            xp: 0, level: 1,
+            dead: false, respawnTime: 0, iframeTimer: CONFIG.IFRAME_TIME,
+            inputs: { up: false, down: false, left: false, right: false, jump: false, shoot: false, grenade: false, dash: false, pound: false, mouseX: 0, mouseY: 0 },
+            lastShoot: 0, lastGrenade: 0, lastDash: 0, lastPound: 0,
+            canDoubleJump: true,
+            facingRight: true,
+            cheats: { god: false, shotgun: false, grenadier: false }
+        };
+    }
 
-      try {
-        if (!audioCtx) {
-          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    removePlayer(id) { delete this.players[id]; }
+
+    updateInputs(id, inputs) {
+        if (this.players[id] && !this.players[id].dead) {
+            this.players[id].inputs = inputs;
+        }
+    }
+
+    toggleCheat(playerId, cheatName) {
+        if(this.players[playerId]) {
+            this.players[playerId].cheats[cheatName] = !this.players[playerId].cheats[cheatName];
+            return this.players[playerId].cheats[cheatName];
+        }
+        return false;
+    }
+
+    getSpawnPoint() {
+        return {
+            x: Math.random() * ((CONFIG.MAP_WIDTH_TILES-2) * CONFIG.TILE_SIZE) + CONFIG.TILE_SIZE,
+            y: 100
+        };
+    }
+
+    tick() {
+        const now = performance.now();
+        const dt = (now - this.lastUpdateTime) / 1000;
+        this.lastUpdateTime = now;
+
+        // Process Players
+        for (let id in this.players) {
+            let p = this.players[id];
+            
+            if (p.dead) {
+                if (now > p.respawnTime) {
+                    p.dead = false;
+                    let spawn = this.getSpawnPoint();
+                    p.x = spawn.x; p.y = spawn.y;
+                    p.hp = p.maxHp; p.vx = 0; p.vy = 0;
+                    p.iframeTimer = now + CONFIG.IFRAME_TIME;
+                }
+                continue; // Skip physics if dead
+            }
+
+            let inIframes = now < p.iframeTimer;
+            
+            // Determine biome attributes
+            let frictionX = 0.8;
+            let accelX = 2;
+            if (p.x < CONFIG.BIOME_ICE_END) { frictionX = 0.98; accelX = 0.5; } // Ice slippery
+            else if (p.x > CONFIG.BIOME_FOREST_END) { frictionX = 0.7; accelX = 3; } // Jungle mud sticky
+
+            // Movement X
+            if (p.inputs.left) { p.vx -= accelX; p.facingRight = false; }
+            if (p.inputs.right) { p.vx += accelX; p.facingRight = true; }
+            p.vx *= frictionX;
+
+            // X Collision
+            p.x += p.vx;
+            this.handleCollision(p, 'x');
+
+            // Movement Y
+            p.vy += CONFIG.GRAVITY;
+            if (p.vy > CONFIG.TERMINAL_VELOCITY) p.vy = CONFIG.TERMINAL_VELOCITY;
+            
+            // Ground pound logic (requires lvl 4)
+            if (p.inputs.pound && p.level >= 4 && now - p.lastPound > CONFIG.POUND_COOLDOWN && p.vy > 0) {
+                p.vy = 25; // Slam down
+                p.pounding = true;
+                p.lastPound = now;
+            }
+
+            p.y += p.vy;
+            let onGround = this.handleCollision(p, 'y');
+
+            if (onGround) {
+                p.canDoubleJump = true;
+                if (p.pounding) {
+                    p.pounding = false;
+                    this.createExplosion(p.x + p.w/2, p.y + p.h, 100, 300, id); // Splash damage
+                }
+            }
+
+            // Jumping
+            if (p.inputs.jump) {
+                if (onGround) {
+                    let baseJump = CONFIG.JUMP_FORCE + (p.level * 0.5); // Slightly higher jump per level
+                    p.vy = -baseJump;
+                    p.inputs.jump = false; // consume input
+                } else if (p.canDoubleJump) {
+                    p.vy = -CONFIG.DOUBLE_JUMP_FORCE;
+                    p.canDoubleJump = false;
+                    p.inputs.jump = false;
+                }
+            }
+
+            // Dashing (requires lvl 3)
+            if (p.inputs.dash && p.level >= 3 && now - p.lastDash > CONFIG.DASH_COOLDOWN) {
+                p.vx = p.facingRight ? 30 : -30;
+                p.lastDash = now;
+                p.inputs.dash = false;
+            }
+
+            // Check Bouncy tiles
+            if (onGround) {
+                let tx = Math.floor((p.x + p.w/2) / CONFIG.TILE_SIZE);
+                let ty = Math.floor((p.y + p.h + 2) / CONFIG.TILE_SIZE);
+                if (ty < CONFIG.MAP_HEIGHT_TILES && this.map[ty][tx] === T_BOUNCE) {
+                    p.vy = -20;
+                }
+            }
+
+            // Bounds check map death
+            if (p.y > CONFIG.MAP_HEIGHT_TILES * CONFIG.TILE_SIZE) this.killPlayer(id, "world");
+
+            // Combat (Cannot attack during iFrames)
+            if (!inIframes) {
+                // Shoot
+                if (p.inputs.shoot && now - p.lastShoot > CONFIG.SHOOT_COOLDOWN) {
+                    p.lastShoot = now;
+                    let angle = Math.atan2(p.inputs.mouseY - (p.y + p.h/2), p.inputs.mouseX - (p.x + p.w/2));
+                    
+                    if (p.cheats.shotgun) {
+                        for(let i=0; i<7; i++) {
+                            let spread = angle + (Math.random() - 0.5) * 0.5;
+                            this.spawnProjectile(p, spread, 20, 20); // Fast, shorter range
+                        }
+                    } else {
+                        this.spawnProjectile(p, angle, 15, 50);
+                    }
+                }
+                
+                // Grenade
+                let grenCd = p.cheats.grenadier ? 500 : CONFIG.GRENADE_COOLDOWN;
+                if (p.inputs.grenade && now - p.lastGrenade > grenCd) {
+                    p.lastGrenade = now;
+                    let angle = Math.atan2(p.inputs.mouseY - (p.y + p.h/2), p.inputs.mouseX - (p.x + p.w/2));
+                    this.spawnGrenade(p, angle);
+                    p.inputs.grenade = false; // Consume click
+                }
+            }
+        }
+
+        // Process Projectiles
+        for (let i = this.projectiles.length - 1; i >= 0; i--) {
+            let proj = this.projectiles[i];
+            
+            if (proj.type === 'bullet') {
+                proj.x += Math.cos(proj.angle) * proj.speed;
+                proj.y += Math.sin(proj.angle) * proj.speed;
+                proj.life--;
+
+                if (proj.life <= 0 || this.checkMapCollision(proj.x, proj.y)) {
+                    this.projectiles.splice(i, 1);
+                    continue;
+                }
+
+                // Check hit players
+                let hitId = this.checkPlayerHit(proj.x, proj.y, 5, proj.ownerId);
+                if (hitId) {
+                    this.damagePlayer(hitId, proj.damage, proj.ownerId);
+                    this.projectiles.splice(i, 1);
+                }
+            } 
+            else if (proj.type === 'grenade') {
+                proj.vy += CONFIG.GRAVITY * 0.5;
+                proj.x += proj.vx;
+                
+                // Bounce X
+                if (this.checkMapCollision(proj.x, proj.y)) {
+                    proj.x -= proj.vx;
+                    proj.vx *= -0.5;
+                }
+                
+                proj.y += proj.vy;
+                // Bounce Y
+                if (this.checkMapCollision(proj.x, proj.y)) {
+                    proj.y -= proj.vy;
+                    proj.vy *= -0.5;
+                    proj.vx *= 0.8; // friction
+                }
+
+                proj.timer -= 1000/CONFIG.FPS;
+                if (proj.timer <= 0) {
+                    this.createExplosion(proj.x, proj.y, 120, 250, proj.ownerId);
+                    this.projectiles.splice(i, 1);
+                }
+            }
+        }
+
+        // Process Items (Drops)
+        for (let i = this.items.length - 1; i >= 0; i--) {
+            let item = this.items[i];
+            item.vy += CONFIG.GRAVITY * 0.5;
+            item.y += item.vy;
+            if (this.checkMapCollision(item.x, item.y + item.r)) {
+                item.y -= item.vy;
+                item.vy = 0;
+            }
+
+            // Pick up
+            for (let pid in this.players) {
+                let p = this.players[pid];
+                if (!p.dead && distance(p.x+p.w/2, p.y+p.h/2, item.x, item.y) < p.w + item.r) {
+                    if (item.type === 'xp') {
+                        this.addXp(pid, item.val);
+                        // Heal 30% max HP on picking up XP drop from kill
+                        p.hp = clamp(p.hp + p.maxHp * 0.3, 0, p.maxHp); 
+                    }
+                    this.items.splice(i, 1);
+                    break;
+                }
+            }
         }
         
-        const source = audioCtx.createMediaStreamSource(stream);
-        analyzer = audioCtx.createAnalyser();
-        analyzer.fftSize = 64; // Small and clean lofi bars
-        const bufferLength = analyzer.frequencyBinCount;
-        dataArray = new Uint8Array(bufferLength);
-        
-        source.connect(analyzer);
-        renderVisualizer();
-      } catch (e) {
-        console.error("Audio Context Init error: ", e);
-      }
+        // Clean old particles
+        this.particles = this.particles.filter(p => now - p.created < p.life);
     }
 
-    function renderVisualizer() {
-      const width = liveVizCanvas.width = liveVizCanvas.parentElement.clientWidth;
-      const height = liveVizCanvas.height = liveVizCanvas.parentElement.clientHeight;
-
-      const draw = () => {
-        if (!analyzer) return;
-        visualizerAnimId = requestAnimationFrame(draw);
-        
-        analyzer.getByteFrequencyData(dataArray);
-        vizCtx.clearRect(0, 0, width, height);
-
-        const barWidth = (width / dataArray.length) * 1.5;
-        let barHeight;
-        let x = 0;
-
-        for (let i = 0; i < dataArray.length; i++) {
-          barHeight = (dataArray[i] / 255) * height * 0.9;
-
-          const gradient = vizCtx.createLinearGradient(0, height, 0, height - barHeight);
-          gradient.addColorStop(0, '#f43f5e'); // Rose
-          gradient.addColorStop(0.5, '#f59e0b'); // Amber
-          gradient.addColorStop(1, '#ec4899'); // Pink
-
-          vizCtx.fillStyle = gradient;
-          vizCtx.fillRect(x, height - barHeight, barWidth - 3, barHeight);
-          x += barWidth;
-        }
-      };
-      draw();
-    }
-
-    // Dynamic Volume setting for Tuned-in audio element
-    let globalAudioNodeElement = null;
-    listenerVolume.addEventListener('input', (e) => {
-      const vol = parseFloat(e.target.value);
-      volumePercentage.innerText = Math.round(vol * 100) + "%";
-      if (globalAudioNodeElement) {
-        globalAudioNodeElement.volume = vol;
-      }
-    });
-
-    // Append beautiful messages to chatbox
-    function appendChatMessage(sender, message, color, isSystem = false) {
-      const msgBlock = document.createElement('div');
-      msgBlock.className = `flex items-start gap-3 p-2.5 rounded-xl transition-all ${isSystem ? 'bg-slate-950/40 border border-slate-800/30' : 'hover:bg-slate-950/20'}`;
-      
-      const cleanSender = sender.replace(/</g, "&lt;").replace(/>/g, "&gt;");
-      const cleanMessage = message.replace(/</g, "&lt;").replace(/>/g, "&gt;");
-
-      const iconLetter = cleanSender.charAt(0).toUpperCase();
-
-      msgBlock.innerHTML = `
-        <div class="w-8 h-8 rounded-xl flex items-center justify-center text-xs font-bold text-slate-950 flex-shrink-0" style="background-color: ${color}">
-          ${isSystem ? '📢' : iconLetter}
-        </div>
-        <div class="flex-grow">
-          <div class="flex items-baseline gap-2">
-            <span class="text-xs font-bold" style="color: ${isSystem ? '#fda4af' : color}">${cleanSender}</span>
-            <span class="text-[9px] text-slate-500">${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
-          </div>
-          <p class="text-xs text-slate-300 leading-relaxed mt-0.5">${cleanMessage}</p>
-        </div>
-      `;
-      
-      chatMessages.appendChild(msgBlock);
-      chatMessages.scrollTop = chatMessages.scrollHeight;
-    }
-
-    // Trigger local chat send
-    chatForm.addEventListener('submit', (e) => {
-      e.preventDefault();
-      const text = chatInput.value.trim();
-      if (!text) return;
-
-      const messageObj = {
-        type: 'CHAT',
-        sender: myNickname,
-        text: text,
-        color: myColor
-      };
-
-      // Handle message based on role
-      if (currentUserRole === 'host') {
-        // Broadcast to everyone connected
-        broadcastToPeers(messageObj);
-        appendChatMessage(myNickname, text, myColor);
-      } else {
-        // Send directly to the peer coordinator / host we are connected to
-        activeConnections.forEach(conn => {
-          if (conn.open) {
-            conn.send(messageObj);
-          }
+    spawnProjectile(owner, angle, speed, damage) {
+        this.projectiles.push({
+            type: 'bullet',
+            x: owner.x + owner.w/2, y: owner.y + owner.h/2,
+            angle, speed, damage, ownerId: owner.id, life: 60
         });
-        // Append locally immediately
-        appendChatMessage(myNickname, text, myColor);
-      }
+    }
 
-      chatInput.value = '';
+    spawnGrenade(owner, angle) {
+        let force = 15;
+        this.projectiles.push({
+            type: 'grenade',
+            x: owner.x + owner.w/2, y: owner.y,
+            vx: Math.cos(angle) * force, vy: Math.sin(angle) * force - 5,
+            timer: 2000, ownerId: owner.id
+        });
+    }
+
+    createExplosion(x, y, radius, damage, ownerId) {
+        this.particles.push({ type: 'exp', x, y, r: radius, created: performance.now(), life: 300 });
+        for (let pid in this.players) {
+            let p = this.players[pid];
+            if (p.dead) continue;
+            let dist = distance(x, y, p.x + p.w/2, p.y + p.h/2);
+            if (dist < radius + p.w/2) {
+                // Damage falloff
+                let dmg = damage * (1 - dist/radius);
+                this.damagePlayer(pid, dmg, ownerId);
+                // Knockback
+                let angle = Math.atan2(p.y+p.h/2 - y, p.x+p.w/2 - x);
+                p.vx += Math.cos(angle) * 15;
+                p.vy += Math.sin(angle) * 15;
+            }
+        }
+    }
+
+    checkPlayerHit(x, y, r, excludeId) {
+        let testRect = { x: x-r, y: y-r, w: r*2, h: r*2 };
+        for (let id in this.players) {
+            if (id === excludeId) continue;
+            let p = this.players[id];
+            if (p.dead || performance.now() < p.iframeTimer) continue;
+            if (rectIntersect(testRect, {x: p.x, y: p.y, w: p.w, h: p.h})) return id;
+        }
+        return null;
+    }
+
+    damagePlayer(id, amount, attackerId) {
+        let p = this.players[id];
+        if (!p || p.dead || performance.now() < p.iframeTimer || p.cheats.god) return;
+
+        p.hp -= amount;
+        if (p.hp <= 0) {
+            this.killPlayer(id, attackerId);
+        }
+    }
+
+    killPlayer(victimId, attackerId) {
+        let victim = this.players[victimId];
+        if(victim.dead) return;
+        victim.dead = true;
+        victim.respawnTime = performance.now() + CONFIG.RESPAWN_TIME;
+        
+        // Drop XP
+        let totalXpDrop = CONFIG.XP_PER_KILL_BASE + victim.xp;
+        this.items.push({
+            type: 'xp', x: victim.x + victim.w/2, y: victim.y + victim.h/2,
+            r: 15, vy: -5, val: totalXpDrop
+        });
+
+        victim.xp = 0;
+        this.recalcStats(victimId);
+    }
+
+    addXp(id, amount) {
+        let p = this.players[id];
+        if(!p) return;
+        p.xp += amount;
+        this.recalcStats(id);
+    }
+
+    recalcStats(id) {
+        let p = this.players[id];
+        // Level calc
+        if (p.xp >= CONFIG.LVL_4_XP) p.level = 4;
+        else if (p.xp >= CONFIG.LVL_3_XP) p.level = 3;
+        else if (p.xp >= CONFIG.LVL_2_XP) p.level = 2;
+        else p.level = 1;
+
+        // Stats based on level
+        p.maxHp = CONFIG.BASE_HP + (p.level - 1) * 250;
+        if (p.hp > p.maxHp) p.hp = p.maxHp;
+    }
+
+    handleCollision(p, axis) {
+        let tx1 = Math.floor(p.x / CONFIG.TILE_SIZE);
+        let ty1 = Math.floor(p.y / CONFIG.TILE_SIZE);
+        let tx2 = Math.floor((p.x + p.w - 1) / CONFIG.TILE_SIZE);
+        let ty2 = Math.floor((p.y + p.h - 1) / CONFIG.TILE_SIZE);
+
+        let onGround = false;
+
+        for (let y = ty1; y <= ty2; y++) {
+            for (let x = tx1; x <= tx2; x++) {
+                if (y >= 0 && y < CONFIG.MAP_HEIGHT_TILES && x >= 0 && x < CONFIG.MAP_WIDTH_TILES) {
+                    if (this.map[y][x] !== T_AIR) {
+                        let tRect = { x: x * CONFIG.TILE_SIZE, y: y * CONFIG.TILE_SIZE, w: CONFIG.TILE_SIZE, h: CONFIG.TILE_SIZE };
+                        
+                        if (axis === 'x') {
+                            if (p.vx > 0) p.x = tRect.x - p.w; // hit right
+                            else if (p.vx < 0) p.x = tRect.x + tRect.w; // hit left
+                            p.vx = 0;
+                        } else if (axis === 'y') {
+                            if (p.vy > 0) { // falling
+                                p.y = tRect.y - p.h;
+                                onGround = true;
+                            } else if (p.vy < 0) { // jumping up hitting ceiling
+                                p.y = tRect.y + tRect.h;
+                            }
+                            p.vy = 0;
+                        }
+                    }
+                }
+            }
+        }
+        return onGround;
+    }
+
+    checkMapCollision(px, py) {
+        let tx = Math.floor(px / CONFIG.TILE_SIZE);
+        let ty = Math.floor(py / CONFIG.TILE_SIZE);
+        if (tx < 0 || tx >= CONFIG.MAP_WIDTH_TILES || ty < 0 || ty >= CONFIG.MAP_HEIGHT_TILES) return true;
+        return this.map[ty][tx] !== T_AIR;
+    }
+
+    getState() {
+        return {
+            p: this.players,
+            pr: this.projectiles.map(p => [Math.round(p.x), Math.round(p.y), p.type === 'grenade'?1:0]), // compressed proj
+            i: this.items.map(i => [Math.round(i.x), Math.round(i.y), i.type==='xp'?1:0]),
+            pt: this.particles.map(p => [Math.round(p.x), Math.round(p.y), Math.round(p.r), p.type==='exp'?1:0])
+        };
+    }
+}
+
+/**
+ * CLIENT RENDERING & INPUT
+ */
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+let camera = { x: 0, y: 0 };
+let myPlayerId = null;
+let gameState = null;
+let gameMap = null; // Received once
+let isHost = false;
+
+// Input tracking
+const keys = { w:false, a:false, s:false, d:false, space:false };
+const mouse = { x:0, y:0, left:false, right:false };
+let lastDoubleTapTime = { a: 0, d: 0 };
+let pendingInputs = { jump: false, dash: false, pound: false, shoot: false, grenade: false };
+
+window.addEventListener('keydown', (e) => {
+    let key = e.key.toLowerCase();
+    if(keys.hasOwnProperty(key)) keys[key] = true;
+    if(e.code === 'Space') { keys.space = true; pendingInputs.jump = true; }
+    if(key === 's') pendingInputs.pound = true;
+    
+    // Double tap dash logic
+    if (key === 'a' || key === 'd') {
+        const now = performance.now();
+        if (now - lastDoubleTapTime[key] < 300) pendingInputs.dash = true;
+        lastDoubleTapTime[key] = now;
+    }
+});
+window.addEventListener('keyup', (e) => {
+    let key = e.key.toLowerCase();
+    if(keys.hasOwnProperty(key)) keys[key] = false;
+    if(e.code === 'Space') keys.space = false;
+});
+canvas.addEventListener('mousemove', (e) => { mouse.x = e.clientX; mouse.y = e.clientY; });
+canvas.addEventListener('mousedown', (e) => {
+    if(e.button === 0) { mouse.left = true; pendingInputs.shoot = true; }
+    if(e.button === 2) { mouse.right = true; pendingInputs.grenade = true; }
+});
+canvas.addEventListener('mouseup', (e) => {
+    if(e.button === 0) mouse.left = false;
+    if(e.button === 2) mouse.right = false;
+});
+canvas.addEventListener('contextmenu', e => e.preventDefault());
+window.addEventListener('resize', resizeCanvas);
+
+function resizeCanvas() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+}
+resizeCanvas();
+
+function getPackagedInput() {
+    // World coordinates for mouse
+    let worldMouseX = mouse.x + camera.x;
+    let worldMouseY = mouse.y + camera.y;
+
+    let res = {
+        up: keys.w, down: keys.s, left: keys.a, right: keys.d,
+        jump: pendingInputs.jump, shoot: mouse.left || pendingInputs.shoot, grenade: pendingInputs.grenade,
+        dash: pendingInputs.dash, pound: pendingInputs.pound,
+        mouseX: worldMouseX, mouseY: worldMouseY
+    };
+    // reset impulses
+    pendingInputs = { jump: false, dash: false, pound: false, shoot: false, grenade: false };
+    return res;
+}
+
+// --- Drawing ---
+const COLORS = {
+    [T_DIRT]: '#5d4037', [T_GRASS]: '#4caf50',
+    [T_ICE_DEEP]: '#b2ebf2', [T_ICE_SURFACE]: '#e0f7fa',
+    [T_MUD]: '#3e2723', [T_JUNGLE_GRASS]: '#1b5e20',
+    [T_BOUNCE]: '#ff4081', [T_WALL]: '#111'
+};
+
+function render() {
+    requestAnimationFrame(render);
+    if (!gameState || !gameMap) return;
+
+    let myPlayer = gameState.p[myPlayerId];
+    
+    // Update Camera
+    if (myPlayer && !myPlayer.dead) {
+        // Smooth follow
+        let targetCamX = myPlayer.x + myPlayer.w/2 - canvas.width/2;
+        let targetCamY = myPlayer.y + myPlayer.h/2 - canvas.height/2;
+        camera.x += (targetCamX - camera.x) * 0.1;
+        camera.y += (targetCamY - camera.y) * 0.1;
+    }
+    
+    // Clamp camera
+    camera.x = Math.max(0, Math.min(camera.x, CONFIG.MAP_WIDTH_TILES * CONFIG.TILE_SIZE - canvas.width));
+    camera.y = Math.max(0, Math.min(camera.y, CONFIG.MAP_HEIGHT_TILES * CONFIG.TILE_SIZE - canvas.height));
+
+    // Draw Background Based on Camera X
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    let cxCenter = camera.x + canvas.width/2;
+    if (cxCenter < CONFIG.BIOME_ICE_END) {
+        let gradient = ctx.createLinearGradient(0,0, 0, canvas.height);
+        gradient.addColorStop(0, '#001a33'); gradient.addColorStop(1, '#004d99');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0,0, canvas.width, canvas.height);
+        // Simple snow
+        ctx.fillStyle = 'rgba(255,255,255,0.5)';
+        for(let i=0; i<50; i++) {
+            ctx.fillRect(((camera.x*0.5 + i*100) % canvas.width), (performance.now()*0.05 + i*50) % canvas.height, 4, 4);
+        }
+    } else if (cxCenter < CONFIG.BIOME_FOREST_END) {
+        let gradient = ctx.createLinearGradient(0,0, 0, canvas.height);
+        gradient.addColorStop(0, '#0f172a'); gradient.addColorStop(1, '#1e293b');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0,0, canvas.width, canvas.height);
+    } else {
+        let gradient = ctx.createLinearGradient(0,0, 0, canvas.height);
+        gradient.addColorStop(0, '#0a1a0a'); gradient.addColorStop(1, '#133013');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0,0, canvas.width, canvas.height);
+    }
+
+    ctx.save();
+    ctx.translate(-Math.floor(camera.x), -Math.floor(camera.y));
+
+    // Draw Map
+    let startX = Math.max(0, Math.floor(camera.x / CONFIG.TILE_SIZE));
+    let endX = Math.min(CONFIG.MAP_WIDTH_TILES, Math.ceil((camera.x + canvas.width) / CONFIG.TILE_SIZE));
+    let startY = Math.max(0, Math.floor(camera.y / CONFIG.TILE_SIZE));
+    let endY = Math.min(CONFIG.MAP_HEIGHT_TILES, Math.ceil((camera.y + canvas.height) / CONFIG.TILE_SIZE));
+
+    for (let y = startY; y < endY; y++) {
+        for (let x = startX; x < endX; x++) {
+            let tile = gameMap[y][x];
+            if (tile !== T_AIR) {
+                ctx.fillStyle = COLORS[tile] || 'magenta';
+                ctx.fillRect(x * CONFIG.TILE_SIZE, y * CONFIG.TILE_SIZE, CONFIG.TILE_SIZE + 1, CONFIG.TILE_SIZE + 1); // +1 prevents gaps
+                
+                // Details
+                if (tile === T_GRASS || tile === T_JUNGLE_GRASS) {
+                    ctx.fillStyle = tile === T_GRASS ? '#81c784' : '#4caf50';
+                    ctx.fillRect(x*CONFIG.TILE_SIZE, y*CONFIG.TILE_SIZE, CONFIG.TILE_SIZE, 6);
+                }
+                if (tile === T_BOUNCE) {
+                    ctx.fillStyle = '#f50057';
+                    ctx.beginPath(); ctx.arc(x*CONFIG.TILE_SIZE+20, y*CONFIG.TILE_SIZE+20, 15, 0, Math.PI*2); ctx.fill();
+                }
+            }
+        }
+    }
+
+    // Draw Items
+    gameState.i.forEach(item => {
+        ctx.fillStyle = item[2] === 1 ? '#00e5ff' : '#ffea00'; // XP or other
+        ctx.beginPath();
+        ctx.arc(item[0], item[1], 10, 0, Math.PI*2);
+        ctx.fill();
+        ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
     });
 
-    // Helper: Broadcast data payload to all connected peers (Host or Lobby Coordinator)
-    function broadcastToPeers(payload) {
-      activeConnections.forEach(conn => {
-        if (conn.open) {
-          conn.send(payload);
+    // Draw Players
+    const now = performance.now();
+    for (let id in gameState.p) {
+        let p = gameState.p[id];
+        if (p.dead) continue;
+
+        let isMe = id === myPlayerId;
+        let inIframes = p.iframeTimer && performance.now() < p.iframeTimer;
+        
+        // Blink if iframe
+        if (inIframes && Math.floor(now / 100) % 2 === 0) continue;
+
+        // Draw Player Body
+        ctx.fillStyle = isMe ? (p.cheats.god ? '#fcd34d' : '#ec4899') : '#3b82f6';
+        ctx.fillRect(p.x, p.y, p.w, p.h);
+        
+        // Eye
+        ctx.fillStyle = 'white';
+        let eyeX = p.facingRight ? p.x + p.w - 10 : p.x + 5;
+        ctx.fillRect(eyeX, p.y + 10, 5, 5);
+
+        // God mode aura
+        if(p.cheats.god) {
+            ctx.strokeStyle = '#fcd34d'; ctx.lineWidth = 2;
+            ctx.strokeRect(p.x-4, p.y-4, p.w+8, p.h+8);
         }
-      });
+
+        // Draw Name & HP
+        ctx.fillStyle = 'white';
+        ctx.font = 'bold 12px Fredoka';
+        ctx.textAlign = 'center';
+        ctx.fillText(p.name, p.x + p.w/2, p.y - 15);
+        
+        // HP Bar overhead
+        ctx.fillStyle = '#333';
+        ctx.fillRect(p.x - 5, p.y - 10, p.w + 10, 4);
+        ctx.fillStyle = '#ef4444';
+        ctx.fillRect(p.x - 5, p.y - 10, (p.hp / p.maxHp) * (p.w + 10), 4);
     }
 
-    // Update connection indicator at top
-    function updateConnectionState(state, customLabel = "") {
-      indicatorDot.className = "w-2.5 h-2.5 rounded-full " + 
-        (state === 'online' ? 'bg-emerald-500 animate-pulse' : 
-         state === 'connecting' ? 'bg-amber-500 animate-pulse' : 'bg-slate-500');
-      indicatorText.innerText = customLabel || (state === 'online' ? 'Live connected' : 'Offline');
-    }
+    // Draw Projectiles
+    gameState.pr.forEach(proj => {
+        if (proj[2] === 0) { // Bullet
+            ctx.fillStyle = '#fbbf24';
+            ctx.beginPath(); ctx.arc(proj[0], proj[1], 4, 0, Math.PI*2); ctx.fill();
+        } else { // Grenade
+            ctx.fillStyle = '#10b981';
+            ctx.beginPath(); ctx.arc(proj[0], proj[1], 6, 0, Math.PI*2); ctx.fill();
+            ctx.strokeStyle = '#000'; ctx.stroke();
+        }
+    });
 
-    // Cleanup & Disconnect system fully
-    function leaveRadioSession() {
-      // Send departure message to active connections
-      if (currentUserRole === 'listener' || isLobbyCoordinator) {
-        broadcastToPeers({
-          type: 'CHAT',
-          sender: 'System',
-          text: `👋 ${myNickname} has left the desk.`,
-          color: '#ef4444'
-        });
-      }
+    // Draw Particles/Explosions
+    gameState.pt.forEach(pt => {
+        if (pt[3] === 1) { // Explosion
+            ctx.fillStyle = 'rgba(239, 68, 68, 0.4)';
+            ctx.beginPath(); ctx.arc(pt[0], pt[1], pt[2], 0, Math.PI*2); ctx.fill();
+            ctx.strokeStyle = 'rgba(251, 191, 36, 0.8)'; ctx.lineWidth = 4; ctx.stroke();
+        }
+    });
 
-      // Stop stream tracks
-      if (localStream) {
-        localStream.getTracks().forEach(track => track.stop());
-        localStream = null;
-      }
-      
-      if (remoteStream) {
-        remoteStream.getTracks().forEach(track => track.stop());
-        remoteStream = null;
-      }
+    ctx.restore();
 
-      // Disconnect connections
-      activeConnections.forEach(conn => conn.close());
-      activeConnections = [];
+    // Update Local UI if alive
+    updateLocalUI(myPlayer, now);
+}
 
-      activeCalls.forEach(call => call.close());
-      activeCalls = [];
+function updateLocalUI(p, now) {
+    if (!p) return;
 
-      if (peer) {
-        peer.destroy();
-        peer = null;
-      }
-
-      // Destroy HTML Audio Player node
-      if (globalAudioNodeElement) {
-        globalAudioNodeElement.pause();
-        globalAudioNodeElement.remove();
-        globalAudioNodeElement = null;
-      }
-
-      // Reset Context Visualizers
-      if (visualizerAnimId) {
-        cancelAnimationFrame(visualizerAnimId);
-      }
-      vizCtx.clearRect(0, 0, liveVizCanvas.width, liveVizCanvas.height);
-
-      // Re-enable Tab configuration
-      deckSelectionArea.classList.remove('hidden');
-      activeDashboard.classList.add('hidden');
-      receiverPlayerBlock.classList.add('hidden');
-      chatInput.disabled = true;
-      btnSendChat.disabled = true;
-      chatInput.placeholder = "Join a room to send messages...";
-
-      chatRoomHeader.innerText = "Lounge Chatroom";
-      chatRoomSubtitle.innerText = "Broadcast offline. Hangout mode active.";
-      lobbyStatusBadge.innerText = "Lounge Mode";
-      lobbyStatusBadge.className = "text-[10px] font-mono text-slate-400 bg-slate-950 px-2.5 py-1 rounded-full border border-slate-800/80";
-      chatHeaderPulse.className = "w-2.5 h-2.5 rounded-full bg-slate-500";
-
-      updateConnectionState('offline');
-      currentUserRole = null;
-      isLobbyCoordinator = false;
-
-      appendChatMessage("System", "Disconnected from room lounge.", "#94a3b8", true);
-    }
-
-    btnLeaveSession.addEventListener('click', leaveRadioSession);
-
-
-    // ==========================================
-    // HOST OPERATION CODE
-    // ==========================================
-    btnStartHosting.addEventListener('click', async () => {
-      const password = hostPassword.value.trim();
-      currentRoomId = hostRoom.value.trim().toLowerCase() || "study-lounge";
-
-      // Enforce the Bryant Reitzel rule
-      if (password !== HOST_PASSWORD) {
-        showModal(
-          "Access Denied", 
-          "Incorrect Broadcaster Password! Please try again. (Hint: The password is your requested designer's name)."
-        );
+    if (p.dead) {
+        document.getElementById('dead-screen').style.display = 'flex';
+        let timeLeft = Math.ceil((p.respawnTime - now) / 1000);
+        document.getElementById('respawn-timer').innerText = timeLeft > 0 ? timeLeft : 0;
         return;
-      }
-
-      currentUserRole = 'host';
-      myNickname = "DJ Studio Host";
-      myColor = "#fb7185"; // Premium rose host brand
-
-      updateConnectionState('connecting', 'Deploying Broadcast Node...');
-
-      try {
-        // Trigger screen/tab media capture for Loopback system audio
-        localStream = await navigator.mediaDevices.getDisplayMedia({
-          video: {
-            displaySurface: "browser", 
-          },
-          audio: {
-            echoCancellation: false,
-            noiseSuppression: false,
-            autoGainControl: false
-          },
-          systemAudio: "include"
-        });
-
-        // Ensure audio was toggled correctly
-        if (localStream.getAudioTracks().length === 0) {
-          localStream.getTracks().forEach(track => track.stop());
-          localStream = null;
-          updateConnectionState('offline');
-          showModal(
-            "Loopback Audio Missing",
-            "Please make sure you checked the <strong>'Share audio'</strong> checkbox in the Chrome/browser window selection popup!"
-          );
-          return;
-        }
-
-        // Initialize PeerJS host peer with standard reliable parameters
-        // ID pattern guarantees listeners know where to seek: hw-radio-{room_id}-host
-        const hostPeerId = `hw-radio-${currentRoomId}-host`;
-        peer = new Peer(hostPeerId, {
-          debug: 1
-        });
-
-        peer.on('open', (id) => {
-          updateConnectionState('online', 'Broadcasting Live');
-          
-          // Switch GUI components
-          deckSelectionArea.classList.add('hidden');
-          activeDashboard.classList.remove('hidden');
-          receiverPlayerBlock.classList.add('hidden'); // Host doesn't play back their own stream
-          
-          activeLabel.innerText = "Station Host Active";
-          activeLabel.className = "text-[10px] font-bold text-amber-400 uppercase tracking-wider";
-          activeRoomName.innerText = `Room: ${currentRoomId}`;
-          txtStatusLabel.innerText = "Streaming live";
-          txtStatusLabel.className = "font-bold text-emerald-400";
-          txtPeerCount.innerText = "0";
-
-          // Chat adjustments
-          chatRoomHeader.innerText = `${currentRoomId} - Host Booth`;
-          chatRoomSubtitle.innerText = "Real-time sound streaming is operational!";
-          lobbyStatusBadge.innerText = "Broadcasting Hub";
-          lobbyStatusBadge.className = "text-[10px] font-mono text-amber-400 bg-amber-950/20 px-2.5 py-1 rounded-full border border-amber-500/25";
-          chatHeaderPulse.className = "w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse";
-          
-          chatInput.disabled = false;
-          btnSendChat.disabled = false;
-          chatInput.placeholder = "Type to communicate with tuned-in listeners...";
-
-          // Start Spectrogram visualizer locally on host loopback stream
-          initVisualizer(localStream);
-          appendChatMessage("System", `Successfully started Broadcast room '${currentRoomId}'!`, "#10b981", true);
-        });
-
-        // If the station ID is already taken, someone else is hosting this room
-        peer.on('error', (err) => {
-          console.error("Host Peer Error: ", err);
-          updateConnectionState('offline');
-          if (err.type === 'unavailable-id') {
-            showModal(
-              "Station Already Online",
-              `The room code '<strong>${currentRoomId}</strong>' currently has an active broadcast host. Please join as a listener or choose a different room name!`
-            );
-          } else {
-            showModal("Signaling Failed", "P2P Setup failed: " + err.message);
-          }
-          leaveRadioSession();
-        });
-
-        // Listen for incoming PeerJS Data Connections (Chat & Syncing)
-        peer.on('connection', (conn) => {
-          // Initialize listening sequence on this data link
-          setupHostDataLink(conn);
-        });
-
-        // Fallback for direct incoming calls
-        peer.on('call', (call) => {
-          call.answer(localStream);
-          activeCalls.push(call);
-        });
-
-      } catch (err) {
-        console.error("Display share failure: ", err);
-        updateConnectionState('offline');
-        showModal("Display Access Denied", "Broadcasting aborted. System audio loopback permissions are required.");
-      }
-    });
-
-    // Host Data Channel routing
-    function setupHostDataLink(conn) {
-      conn.on('open', () => {
-        activeConnections.push(conn);
-        txtPeerCount.innerText = activeConnections.length;
-
-        // Welcome player with system message
-        const welcomeText = `💡 Peer '${conn.metadata.nickname || 'Unknown'}' tuned into station!`;
-        appendChatMessage("System", welcomeText, "#fbbf24", true);
-
-        // Tell existing listeners someone else arrived
-        broadcastToPeers({
-          type: 'CHAT',
-          sender: 'System',
-          text: welcomeText,
-          color: '#fbbf24'
-        });
-
-        // CRITICAL UPDATE: The Host proactively CALLS the listener with the loopback stream
-        // This ensures WebRTC is initiated with tracks on the host side, bypasses browser caller blocks
-        if (localStream) {
-          const call = peer.call(conn.peer, localStream);
-          activeCalls.push(call);
-        }
-      });
-
-      conn.on('data', (data) => {
-        // Router for messaging payloads
-        if (data && data.type === 'CHAT') {
-          // Relay peer message to everyone else (including ourselves)
-          appendChatMessage(data.sender, data.text, data.color);
-          
-          // Relay message outward to other tuned-in listeners
-          broadcastToPeers({
-            type: 'CHAT',
-            sender: data.sender,
-            text: data.text,
-            color: data.color
-          });
-        }
-      });
-
-      conn.on('close', () => {
-        // Filter out closed data connection
-        activeConnections = activeConnections.filter(c => c.peer !== conn.peer);
-        txtPeerCount.innerText = activeConnections.length;
-        appendChatMessage("System", `A listener disconnected from the lounge.`, "#ef4444", true);
-      });
+    } else {
+        document.getElementById('dead-screen').style.display = 'none';
     }
 
+    // Stats
+    document.getElementById('hp-bar').style.width = `${(p.hp / p.maxHp) * 100}%`;
+    document.getElementById('hp-text').innerText = `${Math.ceil(p.hp)}/${p.maxHp}`;
+    
+    // XP math for bar
+    let prevLvlXp = p.level === 1 ? 0 : (p.level === 2 ? CONFIG.LVL_2_XP : (p.level === 3 ? CONFIG.LVL_3_XP : CONFIG.LVL_4_XP));
+    let nextLvlXp = p.level === 1 ? CONFIG.LVL_2_XP : (p.level === 2 ? CONFIG.LVL_3_XP : (p.level === 3 ? CONFIG.LVL_4_XP : p.xp));
+    let xpProgress = 100;
+    if (p.level < 4) {
+        xpProgress = ((p.xp - prevLvlXp) / (nextLvlXp - prevLvlXp)) * 100;
+    }
+    document.getElementById('xp-bar').style.width = `${xpProgress}%`;
+    document.getElementById('lvl-text').innerText = p.level;
+    document.getElementById('xp-text').innerText = p.xp;
 
-    // ==========================================
-    // LISTENER / TUNE-IN OPERATION CODE
-    // ==========================================
-    btnStartListening.addEventListener('click', () => {
-      myNickname = listenerName.value.trim() || "Buddy" + Math.floor(Math.random() * 900 + 100);
-      myColor = avatarColor.value;
-      currentRoomId = listenerRoom.value.trim().toLowerCase() || "study-lounge";
+    // Cooldowns UI
+    updateCooldownUI('cd-shoot', now - p.lastShoot, CONFIG.SHOOT_COOLDOWN);
+    updateCooldownUI('cd-grenade', now - p.lastGrenade, p.cheats.grenadier ? 500 : CONFIG.GRENADE_COOLDOWN);
+    
+    // Abilities unlocks
+    toggleAbilityIcon('icon-dash', p.level >= 3);
+    if(p.level >= 3) updateCooldownUI('cd-dash', now - p.lastDash, CONFIG.DASH_COOLDOWN);
+    
+    toggleAbilityIcon('icon-pound', p.level >= 4);
+    if(p.level >= 4) updateCooldownUI('cd-pound', now - p.lastPound, CONFIG.POUND_COOLDOWN);
+}
 
-      currentUserRole = 'listener';
-      updateConnectionState('connecting', 'Tuning Radio Signal...');
+function updateCooldownUI(id, elapsed, total) {
+    let el = document.getElementById(id);
+    if (!el) return;
+    if (elapsed < total) {
+        let percent = 100 - (elapsed / total) * 100;
+        el.style.height = `${percent}%`;
+    } else {
+        el.style.height = `0%`;
+    }
+}
+function toggleAbilityIcon(id, active) {
+    let el = document.getElementById(id);
+    if(active) el.classList.add('active'); else el.classList.remove('active');
+}
 
-      // Build random listener Peer ID to avoid colliding
-      const listenerPeerId = `hw-radio-${currentRoomId}-listener-${makeId(6)}`;
-      
-      peer = new Peer(listenerPeerId, {
-        debug: 1
-      });
+/**
+ * NETWORKING LOGIC
+ */
+let peer = null;
+let connections = {}; // Host stores clients
+let hostConn = null; // Client stores host
+let engine = null;
 
-      peer.on('open', (id) => {
-        // Now try connecting to the host
-        attemptToTuneIn();
-      });
+const statusTxt = document.getElementById('menu-status');
 
-      // Listen for the incoming broadcast call from the Host
-      peer.on('call', (call) => {
-        call.answer(); // Answer empty (listener doesn't send audio back)
-        setupIncomingMedia(call);
-      });
+// --- Host Mode ---
+document.getElementById('btn-host').addEventListener('click', () => {
+    let name = document.getElementById('player-name').value.trim() || 'HostPlayer';
+    statusTxt.innerText = "Creating world...";
+    
+    // Use alphanumeric short code
+    const hostCode = generateId();
+    // Prefix to avoid collisions on public server
+    const peerId = `biome-arena-${hostCode}`;
 
-      peer.on('error', (err) => {
-        console.error("Listener Peer error: ", err);
-        updateConnectionState('offline');
-        showModal("P2P Error", "Could not establish listener network. Please refresh: " + err.message);
-      });
-    });
+    peer = new Peer(peerId, { debug: 0 });
 
-    function attemptToTuneIn() {
-      const targetHostId = `hw-radio-${currentRoomId}-host`;
-      
-      // Try linking data connection to the host
-      const hostConn = peer.connect(targetHostId, {
-        metadata: { nickname: myNickname, color: myColor }
-      });
-
-      // Timeout safety check if host is offline
-      let hostResponsive = false;
-      const hostCheckTimer = setTimeout(() => {
-        if (!hostResponsive) {
-          console.warn("Host did not respond. Transitioning to lounge hangout chat-only mode.");
-          hostConn.close();
-          enterLobbyOnlyMode();
-        }
-      }, 3500);
-
-      hostConn.on('open', () => {
-        hostResponsive = true;
-        clearTimeout(hostCheckTimer);
-
-        activeConnections.push(hostConn);
-
-        // Success - connected to actual live stream!
-        updateConnectionState('online', 'Tuned In');
+    peer.on('open', (id) => {
+        isHost = true;
+        myPlayerId = 'host';
         
-        deckSelectionArea.classList.add('hidden');
-        activeDashboard.classList.remove('hidden');
-        receiverPlayerBlock.classList.remove('hidden');
-
-        activeLabel.innerText = "Tuned In Live";
-        activeLabel.className = "text-[10px] font-bold text-emerald-400 uppercase tracking-wider";
-        activeRoomName.innerText = `Room: ${currentRoomId}`;
-        txtStatusLabel.innerText = "Live Audio Streaming";
-        txtStatusLabel.className = "font-bold text-emerald-400";
-        txtPeerCount.innerText = "Active Feed";
-
-        chatRoomHeader.innerText = `${currentRoomId} Lounge`;
-        chatRoomSubtitle.innerText = "Tuned in live with custom audio streaming.";
-        lobbyStatusBadge.innerText = "Live Station";
-        lobbyStatusBadge.className = "text-[10px] font-mono text-emerald-400 bg-emerald-950/20 px-2.5 py-1 rounded-full border border-emerald-500/25";
-        chatHeaderPulse.className = "w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse";
-
-        chatInput.disabled = false;
-        btnSendChat.disabled = false;
-        chatInput.placeholder = "Say hi to the stream room...";
-
-        appendChatMessage("System", `Tuned into live host '${currentRoomId}'! Waiting for host to stream audio feed...`, "#10b981", true);
-      });
-
-      hostConn.on('data', (data) => {
-        if (data && data.type === 'CHAT') {
-          appendChatMessage(data.sender, data.text, data.color, data.sender === 'System');
+        // Init Engine
+        engine = new GameEngine();
+        
+        // Add Host Player
+        if(document.getElementById('host-play-toggle').checked) {
+            engine.addPlayer(myPlayerId, name);
         }
-      });
 
-      hostConn.on('close', () => {
-        appendChatMessage("System", "Host broadcast connection closed.", "#f43f5e", true);
-        // Fall back gracefully to lounge chat lobby
-        leaveRadioSession();
-      });
+        // Setup UI
+        document.getElementById('main-menu').style.display = 'none';
+        document.getElementById('game-ui').style.display = 'block';
+        document.getElementById('host-code-display').style.display = 'flex';
+        document.getElementById('current-code').innerText = hostCode;
+        document.getElementById('host-sidebar').style.display = 'flex';
+        updateHostSidebar();
+
+        // Start Server Loop
+        setInterval(() => engine.tick(), 1000 / CONFIG.FPS);
+        setInterval(() => broadcastState(), 1000 / CONFIG.TICK_RATE);
+        
+        // We act as local client too, start rendering
+        gameMap = engine.map;
+        render();
+
+        // Local input loop for host
+        setInterval(() => {
+            if(engine.players[myPlayerId]) {
+                engine.updateInputs(myPlayerId, getPackagedInput());
+            }
+        }, 1000 / CONFIG.TICK_RATE);
+    });
+
+    peer.on('connection', (conn) => {
+        conn.on('open', () => {
+            // Wait for auth init message
+        });
+
+        conn.on('data', (data) => {
+            if (data.type === 'init') {
+                connections[conn.peer] = conn;
+                engine.addPlayer(conn.peer, data.name.substring(0, 20)); // Limit name
+                conn.send({ type: 'map', map: engine.map, id: conn.peer });
+                updateHostSidebar();
+            } else if (data.type === 'input') {
+                engine.updateInputs(conn.peer, data.input);
+            }
+        });
+
+        conn.on('close', () => handleDisconnect(conn.peer));
+        conn.on('error', () => handleDisconnect(conn.peer));
+    });
+
+    peer.on('error', (err) => {
+        statusTxt.innerText = "Failed to host: " + err.type;
+        console.error(err);
+    });
+});
+
+function broadcastState() {
+    if (!engine) return;
+    gameState = engine.getState(); // Host updates local state directly for render
+    
+    // Send to clients
+    let packedState = { type: 'state', state: gameState };
+    for (let id in connections) {
+        connections[id].send(packedState);
     }
+}
 
-    // Handles playing back the WebRTC audio feed and piping it to visualizer
-    function setupIncomingMedia(call) {
-      call.on('stream', (stream) => {
-        // Create dynamic audio player DOM node
-        if (globalAudioNodeElement) {
-          globalAudioNodeElement.pause();
-          globalAudioNodeElement.remove();
-        }
+function handleDisconnect(id) {
+    if (connections[id]) {
+        delete connections[id];
+        engine.removePlayer(id);
+        updateHostSidebar();
+    }
+}
 
-        remoteStream = stream;
-        globalAudioNodeElement = document.createElement('audio');
-        globalAudioNodeElement.srcObject = stream;
-        globalAudioNodeElement.autoplay = true;
-        globalAudioNodeElement.playsInline = true; // Support mobile browser loopback
-        globalAudioNodeElement.volume = parseFloat(listenerVolume.value);
-        document.body.appendChild(globalAudioNodeElement);
+// --- Client Mode ---
+document.getElementById('btn-join').addEventListener('click', () => {
+    let name = document.getElementById('player-name').value.trim() || 'Player' + Math.floor(Math.random()*1000);
+    let code = document.getElementById('join-code').value.trim().toUpperCase();
+    
+    if(!code) { statusTxt.innerText = "Enter a code!"; return; }
+    
+    statusTxt.innerText = "Connecting...";
+    peer = new Peer({ debug: 0 });
 
-        // Standard browser interaction play check
-        const playPromise = globalAudioNodeElement.play();
-        if (playPromise !== undefined) {
-          playPromise.catch(error => {
-            console.log("Autoplay blocked by browser. Unmuting upon next click anywhere on page.");
-            
-            // Interaction safety listener to resume state instantly
-            const forcePlay = () => {
-              if (globalAudioNodeElement) {
-                globalAudioNodeElement.play().catch(e => console.log("Still blocked:", e));
-              }
-              document.removeEventListener('click', forcePlay);
+    peer.on('open', (id) => {
+        const hostPeerId = `biome-arena-${code}`;
+        hostConn = peer.connect(hostPeerId, { reliable: true });
+
+        hostConn.on('open', () => {
+            statusTxt.innerText = "Joining arena...";
+            hostConn.send({ type: 'init', name: name });
+
+            // Start sending inputs
+            setInterval(() => {
+                if (myPlayerId) {
+                    hostConn.send({ type: 'input', input: getPackagedInput() });
+                }
+            }, 1000 / CONFIG.TICK_RATE);
+        });
+
+        hostConn.on('data', (data) => {
+            if (data.type === 'map') {
+                gameMap = data.map;
+                myPlayerId = data.id;
+                document.getElementById('main-menu').style.display = 'none';
+                document.getElementById('game-ui').style.display = 'block';
+                render();
+            } else if (data.type === 'state') {
+                gameState = data.state;
+            } else if (data.type === 'kicked') {
+                alert("You were kicked by the host.");
+                location.reload();
+            }
+        });
+
+        hostConn.on('close', () => {
+            alert("Connection to host lost.");
+            location.reload();
+        });
+        hostConn.on('error', () => {
+            statusTxt.innerText = "Connection error.";
+        });
+    });
+
+    peer.on('error', (err) => {
+        statusTxt.innerText = "Error connecting: Check code.";
+    });
+});
+
+// --- Host UI Interactivity ---
+document.getElementById('toggle-host-panel').addEventListener('click', () => {
+    let panel = document.getElementById('host-sidebar');
+    panel.classList.toggle('sidebar-closed');
+    panel.classList.toggle('sidebar-open');
+});
+document.getElementById('close-host-panel').addEventListener('click', () => {
+    document.getElementById('host-sidebar').classList.replace('sidebar-open', 'sidebar-closed');
+});
+
+document.getElementById('host-play-toggle').addEventListener('change', (e) => {
+    if(!isHost || !engine) return;
+    if(e.target.checked) {
+        let name = document.getElementById('player-name').value.trim() || 'Host';
+        engine.addPlayer('host', name);
+    } else {
+        engine.removePlayer('host');
+        // move camera to middle of map as spectator
+        camera.x = (CONFIG.MAP_WIDTH_TILES * CONFIG.TILE_SIZE)/2 - canvas.width/2;
+    }
+    updateHostSidebar();
+});
+
+function updateHostSidebar() {
+    if(!isHost || !engine) return;
+    const list = document.getElementById('player-list');
+    list.innerHTML = '';
+    
+    let count = Object.keys(engine.players).length;
+    document.getElementById('player-count').innerText = count;
+
+    for(let id in engine.players) {
+        let p = engine.players[id];
+        let el = document.createElement('div');
+        el.className = 'bg-slate-700 p-2 rounded flex flex-col gap-2';
+        
+        // Header
+        let header = document.createElement('div');
+        header.className = 'flex justify-between items-center';
+        header.innerHTML = `<span class="font-bold text-sm ${id==='host'?'text-cyan-400':''}">${p.name} ${id==='host'?'(Host)':''}</span>
+                            <span class="text-xs text-gray-400">Lvl ${p.level}</span>`;
+        el.appendChild(header);
+
+        // Controls
+        let controls = document.createElement('div');
+        controls.className = 'flex gap-1 flex-wrap';
+        
+        let cheats = ['god', 'shotgun', 'grenadier'];
+        cheats.forEach(c => {
+            let btn = document.createElement('button');
+            btn.className = `text-xs px-2 py-1 rounded border border-slate-500 ${p.cheats[c] ? 'bg-cyan-600 text-white' : 'bg-slate-800 text-gray-400'} hover:bg-slate-600`;
+            btn.innerText = c;
+            btn.onclick = () => {
+                let active = engine.toggleCheat(id, c);
+                btn.className = `text-xs px-2 py-1 rounded border border-slate-500 ${active ? 'bg-cyan-600 text-white' : 'bg-slate-800 text-gray-400'} hover:bg-slate-600`;
             };
-            document.addEventListener('click', forcePlay);
-          });
+            controls.appendChild(btn);
+        });
+
+        if (id !== 'host') {
+            let kick = document.createElement('button');
+            kick.className = 'text-xs px-2 py-1 rounded bg-red-800 text-white hover:bg-red-600 ml-auto';
+            kick.innerText = 'KICK';
+            kick.onclick = () => {
+                if(connections[id]) {
+                    connections[id].send({type: 'kicked'});
+                    setTimeout(() => { connections[id].close(); handleDisconnect(id); }, 500);
+                }
+            };
+            controls.appendChild(kick);
         }
 
-        // Initialize visualizer on listener's screen
-        initVisualizer(stream);
-      });
-
-      call.on('close', () => {
-        if (globalAudioNodeElement) {
-          globalAudioNodeElement.pause();
-          globalAudioNodeElement.remove();
-          globalAudioNodeElement = null;
-        }
-      });
+        el.appendChild(controls);
+        list.appendChild(el);
     }
+}
 
+// Copy host code
+document.getElementById('current-code').addEventListener('click', function() {
+    let text = this.innerText;
+    navigator.clipboard.writeText(text).then(() => {
+        let old = this.innerText;
+        this.innerText = "COPIED!";
+        setTimeout(() => this.innerText = old, 1000);
+    });
+});
 
-    // ==========================================
-    // LOBBY/LOUNGE FALLBACK CODE (No active host)
-    // ==========================================
-    function enterLobbyOnlyMode() {
-      // Clean previous connections
-      activeConnections.forEach(c => c.close());
-      activeConnections = [];
-
-      appendChatMessage("System", "📻 Host offline. Setting up study lounge chat mode...", "#f59e0b", true);
-
-      // We attempt to find an existing lounge coordinator in this room: hw-radio-{room_id}-lobby
-      const coordinateId = `hw-radio-${currentRoomId}-lobby`;
-
-      // Attempt to register our Peer Node as the lobby coordinator!
-      peer.destroy(); // Clear existing temporary peer ID
-
-      // Create a deterministic lobby ID so other listeners aggregate here
-      const checkLobbyId = `hw-radio-${currentRoomId}-lobby`;
-      
-      peer = new Peer(checkLobbyId, {
-        debug: 1
-      });
-
-      peer.on('open', (id) => {
-        // We successfully grabbed the coordinator slot! We are the room chat leader.
-        isLobbyCoordinator = true;
-        mountLobbyInterface();
-        appendChatMessage("System", "✨ You are the lounge coordinator for this room.", "#34d399", true);
-      });
-
-      peer.on('error', (err) => {
-        if (err.type === 'unavailable-id') {
-          // Lobby is already managed by someone else! Create a normal client peer and connect to it.
-          const followerPeerId = `hw-radio-${currentRoomId}-lounge-listener-${makeId(6)}`;
-          peer = new Peer(followerPeerId, { debug: 1 });
-
-          peer.on('open', () => {
-            const coordConn = peer.connect(checkLobbyId, {
-              metadata: { nickname: myNickname, color: myColor }
-            });
-
-            coordConn.on('open', () => {
-              activeConnections.push(coordConn);
-              mountLobbyInterface(false);
-              appendChatMessage("System", "Connected to lounge study lounge!", "#60a5fa", true);
-            });
-
-            coordConn.on('data', (data) => {
-              if (data && data.type === 'CHAT') {
-                appendChatMessage(data.sender, data.text, data.color, data.sender === 'System');
-              }
-            });
-
-            coordConn.on('close', () => {
-              appendChatMessage("System", "Lounge coordinator disconnected. Re-synchronizing...", "#f43f5e", true);
-              enterLobbyOnlyMode(); // Auto-heal lobby slot
-            });
-          });
-        } else {
-          showModal("Lounge Error", "Could not coordinate peer lounge: " + err.message);
-        }
-      });
-
-      // Coordinator specific listener handlers
-      peer.on('connection', (conn) => {
-        if (isLobbyCoordinator) {
-          setupHostDataLink(conn); // Coordinator behaves similar to host for text chat relaying
-        }
-      });
-    }
-
-    function mountLobbyInterface(isLeader = true) {
-      updateConnectionState('online', 'Lounge Active');
-
-      deckSelectionArea.classList.add('hidden');
-      activeDashboard.classList.remove('hidden');
-      receiverPlayerBlock.classList.add('hidden'); // No stream to play
-
-      activeLabel.innerText = "Lounge Chat Active";
-      activeLabel.className = "text-[10px] font-bold text-amber-400 uppercase tracking-wider";
-      activeRoomName.innerText = `Room: ${currentRoomId}`;
-      txtStatusLabel.innerText = isLeader ? "Hosting Study Room" : "Study Room Lounge";
-      txtStatusLabel.className = "font-bold text-amber-400";
-      txtPeerCount.innerText = isLeader ? activeConnections.length : "Connected";
-
-      chatRoomHeader.innerText = `${currentRoomId} - Study Lounge`;
-      chatRoomSubtitle.innerText = "No stream is broadcasted. Use chat to connect!";
-      lobbyStatusBadge.innerText = "Lounge Offline";
-      lobbyStatusBadge.className = "text-[10px] font-mono text-slate-400 bg-slate-950 px-2.5 py-1 rounded-full border border-slate-800/85";
-      chatHeaderPulse.className = "w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse";
-
-      chatInput.disabled = false;
-      btnSendChat.disabled = false;
-      chatInput.placeholder = "Talk to study buddies in this room...";
-    }
-
-  </script>
+</script>
 </body>
 </html>
