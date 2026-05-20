@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CHAOZ.IO - Real-Time P2P Chaos Party!</title>
+    <title>CHAOZ.IO - Real-Time P2P Video Chaos Party!</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- PeerJS CDN -->
@@ -63,10 +63,20 @@
             </div>
             <div>
                 <h1 class="text-xl md:text-2xl title-font bg-gradient-to-r from-pink-500 via-purple-400 to-cyan-400 bg-clip-text text-transparent">CHAOZ.IO</h1>
-                <p class="text-[10px] text-gray-400 tracking-wider font-semibold uppercase">P2P Low-Latency Arena</p>
+                <p class="text-[10px] text-gray-400 tracking-wider font-semibold uppercase">P2P Low-Latency Video Arena</p>
             </div>
         </div>
         <div class="flex items-center gap-4">
+            <!-- Cam & Mic Hardware Status -->
+            <div class="flex items-center gap-2 bg-purple-950/40 border border-purple-500/30 px-3 py-1.5 rounded-full text-xs">
+                <button id="toggleCamBtn" class="hover:text-pink-400 transition-colors text-gray-400 px-1" title="Toggle Webcam Video">
+                    <i class="fa-solid fa-video-slash" id="camIcon"></i>
+                </button>
+                <span class="text-gray-600">|</span>
+                <button id="toggleMicBtn" class="hover:text-cyan-400 transition-colors text-gray-400 px-1" title="Toggle Microphone Audio">
+                    <i class="fa-solid fa-microphone-slash" id="micIcon"></i>
+                </button>
+            </div>
             <div id="connectionStatus" class="flex items-center gap-2 bg-red-950/40 border border-red-500/30 px-3 py-1.5 rounded-full text-xs text-red-400 font-semibold">
                 <span class="w-2.5 h-2.5 rounded-full bg-red-500 animate-ping"></span>
                 <span>DISCONNECTED</span>
@@ -94,7 +104,7 @@
             <!-- Avatar & Color Customization -->
             <div class="space-y-4 mb-6">
                 <div>
-                    <label class="block text-xs font-semibold text-gray-400 mb-1.5">NICKNAME (Be wild, no filters!)</label>
+                    <label class="block text-xs font-semibold text-gray-400 mb-1.5">NICKNAME (Be wild & clean!)</label>
                     <input type="text" id="playerNameInput" maxlength="15" placeholder="Enter Nickname..." class="w-full bg-black/60 border border-purple-500/30 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-pink-500 transition-colors placeholder:text-gray-600 text-lg font-semibold">
                 </div>
 
@@ -301,6 +311,18 @@
                     </div>
                 </div>
 
+                <!-- Custom Graffiti/Meme Upload Splat -->
+                <div class="bg-black/40 border border-purple-500/20 p-4 rounded-2xl">
+                    <h3 class="text-xs font-bold text-emerald-400 uppercase tracking-widest mb-2 flex justify-between items-center">
+                        <span>🖼️ SPLAT A MEME (UNDER 100MB)</span>
+                        <span class="text-[9px] text-gray-500 font-bold">PNG/JPG</span>
+                    </h3>
+                    <label class="w-full h-10 border border-dashed border-emerald-500/30 rounded-xl flex items-center justify-center cursor-pointer hover:bg-emerald-950/20 transition-all text-xs text-emerald-400 font-bold">
+                        <i class="fa-solid fa-cloud-arrow-up mr-2"></i> Choose safe image...
+                        <input type="file" id="memeUploadInput" accept="image/*" class="hidden">
+                    </label>
+                </div>
+
                 <!-- Live Soundboard Spam -->
                 <div class="bg-black/40 border border-purple-500/20 p-4 rounded-2xl">
                     <h3 class="text-xs font-bold text-pink-400 uppercase tracking-widest mb-2.5 flex justify-between items-center">
@@ -343,8 +365,8 @@
                 </button>
                 <h3 class="text-2xl font-black title-font text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-cyan-400 mb-4">💥 THE LAWS OF CHAOZ.IO</h3>
                 
-                <div class="space-y-4 text-sm text-gray-300">
-                    <p><strong class="text-white">The Goal:</strong> Fly around, launch bouncy lasers, and avoid explosions! If playing <strong class="text-pink-400">Bomb Tag</strong>, tag other players to pass off the thermonuclear bomb before it explodes on your head!</p>
+                <div class="space-y-4 text-sm text-gray-300 font-light">
+                    <p><strong class="text-white font-bold">The Goal:</strong> Fly around, launch bouncy lasers, and avoid explosions! If playing <strong class="text-pink-400">Bomb Tag</strong>, tag other players to pass off the thermonuclear bomb before it explodes on your head!</p>
                     
                     <div class="bg-purple-950/40 p-3.5 border border-purple-500/20 rounded-xl space-y-2">
                         <h4 class="font-bold text-white text-xs uppercase tracking-widest"><i class="fa-solid fa-gamepad text-cyan-400"></i> Keyboard Controls:</h4>
@@ -357,12 +379,8 @@
                     </div>
 
                     <div class="bg-purple-950/40 p-3.5 border border-purple-500/20 rounded-xl space-y-2">
-                        <h4 class="font-bold text-white text-xs uppercase tracking-widest"><i class="fa-solid fa-mobile-screen text-pink-400"></i> Touch Controls:</h4>
-                        <ul class="list-disc list-inside text-xs space-y-1 pl-1">
-                            <li><strong class="text-cyan-400">Left Joystick:</strong> Drag to steer and move</li>
-                            <li><strong class="text-cyan-400">💥 Button:</strong> Shoot lasers at target direction</li>
-                            <li><strong class="text-cyan-400">⚡ Button:</strong> Nitro speed burst</li>
-                        </ul>
+                        <h4 class="font-bold text-white text-xs uppercase tracking-widest"><i class="fa-solid fa-camera text-emerald-400"></i> Video & Meme Splat Features:</h4>
+                        <p class="text-xs">Turn on your <strong class="text-emerald-400">Webcam/Mic</strong> at the top bar to project your real-time video inside your player circle! Splat cool images onto the battlefield floor using the file picker.</p>
                     </div>
 
                     <p class="text-xs text-gray-400 italic">This game runs completely peer-to-peer! There are no server delays, and chat is 100% direct and unfiltered. Soundboard buttons immediately blast audio straight to everyone's speakers. Go wild!</p>
@@ -415,6 +433,9 @@
         </div>
 
     </main>
+
+    <!-- Hidden audio/video pipeline output container -->
+    <div id="remoteVideoContainer" class="hidden"></div>
 
     <!-- Footer of System -->
     <footer class="p-4 border-t border-purple-900/40 text-center text-xs text-gray-500 z-10 bg-black/20">
@@ -627,7 +648,6 @@
             '#FFFFFF'  // White
         ];
 
-        // Soundboard spam map
         const SOUNDS = [
             { name: '💥 Fart Spam', action: () => sfx.playFart(), code: 'FART' },
             { name: '🔫 Pew Pew', action: () => sfx.playLaser(), code: 'LASER' },
@@ -637,7 +657,6 @@
             { name: '💣 Boom!', action: () => sfx.playExplosion(), code: 'EXPLOSION' }
         ];
 
-        // Custom screen reactions to float over canvas
         const REACTIONS = [
             { emoji: '💩', label: 'Crap' },
             { emoji: '🤡', label: 'Clown' },
@@ -656,18 +675,29 @@
         let myColor = '#FF007F';
         let isHost = false;
         let peer = null;
-        let connections = []; // For Host: list of client connections. For Client: list with host connection.
+        let connections = []; // Direct P2P data channels
         let localPlayerState = { x: 400, y: 300, vx: 0, vy: 0, angle: 0, pressingKeys: {}, isBurstActive: false };
+        
+        // AV / Stream variables
+        let localMediaStream = null;
+        let isCamEnabled = false;
+        let isMicEnabled = false;
+        const remoteVideoElements = {}; // playerId -> <video> element containing their camera feed
+
+        // Dynamic splatted background graffiti memes
+        let splatMemes = []; 
+
         let activeEvent = 'NONE';
         let eventTimeLeft = 15;
         let gameTimeLeft = 120; // 2 minutes round
         let gameTimerInterval = null;
+        
         let gameState = {
             players: {},
             bullets: [],
             bombs: [],
             explosions: [],
-            safeZone: { x: 400, y: 300, radius: 450 }, // shrinking arena bounds
+            safeZone: { x: 400, y: 300, radius: 450 },
             currentEvent: 'NONE',
             eventCountdown: 15,
             gamePhase: 'LOBBY' // LOBBY, PLAYING, STATS
@@ -679,6 +709,12 @@
         const closeRulesBtn = document.getElementById('closeRulesBtn');
         const dismissRulesBtn = document.getElementById('dismissRulesBtn');
         const connectionStatus = document.getElementById('connectionStatus');
+        const toggleCamBtn = document.getElementById('toggleCamBtn');
+        const toggleMicBtn = document.getElementById('toggleMicBtn');
+        const camIcon = document.getElementById('camIcon');
+        const micIcon = document.getElementById('micIcon');
+        const memeUploadInput = document.getElementById('memeUploadInput');
+        const remoteVideoContainer = document.getElementById('remoteVideoContainer');
 
         const menuPanel = document.getElementById('menuPanel');
         const hostGameBtn = document.getElementById('hostGameBtn');
@@ -747,9 +783,13 @@
         // Custom screen reactions state (to draw floating emojis directly on game panel)
         let floatingEmojis = [];
 
+        // Lerping cache object to guarantee perfect smoothness on non-host players
+        // format: { id: { x: renderX, y: renderY } }
+        const interpCache = {};
+
         // Generate clean alphanumeric 5-character Code for Host Identification
         function generateRoomCode() {
-            const characters = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // No confusing characters like I, O, 1, 0
+            const characters = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
             let code = '';
             for (let i = 0; i < 5; i++) {
                 code += characters.charAt(Math.floor(Math.random() * characters.length));
@@ -759,10 +799,8 @@
 
         // --- Init Identity customizers ---
         function setupIdentityChoices() {
-            // Set random default nickname
             playerNameInput.value = "Guest_" + Math.floor(1000 + Math.random() * 9000);
             
-            // Build Avatars picker
             AVATARS.forEach((av, idx) => {
                 const btn = document.createElement('button');
                 btn.type = 'button';
@@ -779,7 +817,6 @@
                 avatarPicker.appendChild(btn);
             });
 
-            // Build Color Picker
             COLORS.forEach((color, idx) => {
                 const btn = document.createElement('button');
                 btn.type = 'button';
@@ -851,19 +888,65 @@
                 alpha: 1.0,
                 scale: 1.2 + Math.random() * 0.8
             });
-            // Keep buffer reasonable
             if (floatingEmojis.length > 40) {
                 floatingEmojis.shift();
             }
         }
 
-        // Overlay notifications for remote client sounds
         function showSoundSpamAlert(message) {
             const row = document.createElement('div');
             row.className = "bg-pink-950/60 border border-pink-500/30 px-3 py-1.5 rounded-lg text-pink-300 font-bold text-[11px] flex justify-between items-center animate-pulse shadow-md w-full";
             row.innerHTML = `<span>🔊 ${message}</span>`;
             soundSpamOverlay.appendChild(row);
             setTimeout(() => row.remove(), 2500);
+        }
+
+        // Audio & Video permission handlers
+        async function getAVMediaStream() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { width: 120, height: 120, frameRate: 15 },
+                    audio: true
+                });
+                localMediaStream = stream;
+                isCamEnabled = true;
+                isMicEnabled = true;
+                
+                // Mute local video element to avoid audio feedback
+                const localVideo = document.createElement('video');
+                localVideo.srcObject = stream;
+                localVideo.muted = true;
+                localVideo.autoplay = true;
+                localVideo.playsInline = true;
+                remoteVideoElements[myId] = localVideo;
+
+                updateAVUI();
+                return stream;
+            } catch (err) {
+                console.warn("AV Access rejected or unavailable:", err);
+                alertUser("Could not access camera/microphone. Standard avatars will be used.");
+                isCamEnabled = false;
+                isMicEnabled = false;
+                updateAVUI();
+            }
+        }
+
+        function updateAVUI() {
+            if (isCamEnabled) {
+                camIcon.className = "fa-solid fa-video text-pink-500 animate-pulse";
+                toggleCamBtn.title = "Disable Camera";
+            } else {
+                camIcon.className = "fa-solid fa-video-slash text-gray-500";
+                toggleCamBtn.title = "Enable Camera";
+            }
+
+            if (isMicEnabled) {
+                micIcon.className = "fa-solid fa-microphone text-cyan-500 animate-pulse";
+                toggleMicBtn.title = "Disable Mic";
+            } else {
+                micIcon.className = "fa-solid fa-microphone-slash text-gray-500";
+                toggleMicBtn.title = "Enable Mic";
+            }
         }
 
         // Standard event registration listeners
@@ -890,17 +973,71 @@
             connectToHostBtn.addEventListener('click', () => {
                 const enteredCode = joinRoomIdInput.value.trim().toUpperCase();
                 if (enteredCode.length !== 5) {
-                    alertUser("Invalid code format! Code must be exactly 5 letters.");
+                    alertUser("Invalid code! Room code must be exactly 5 letters.");
                     return;
                 }
                 initPeerConnection(false, enteredCode);
+            });
+
+            // Camera hardware toggles
+            toggleCamBtn.addEventListener('click', async () => {
+                if (!localMediaStream) {
+                    await getAVMediaStream();
+                    if (localMediaStream) {
+                        // Start calling active peers with video
+                        initiateAVPeersCall();
+                    }
+                } else {
+                    isCamEnabled = !isCamEnabled;
+                    localMediaStream.getVideoTracks().forEach(track => track.enabled = isCamEnabled);
+                    updateAVUI();
+                }
+            });
+
+            // Microphone hardware toggles
+            toggleMicBtn.addEventListener('click', async () => {
+                if (!localMediaStream) {
+                    await getAVMediaStream();
+                    if (localMediaStream) {
+                        initiateAVPeersCall();
+                    }
+                } else {
+                    isMicEnabled = !isMicEnabled;
+                    localMediaStream.getAudioTracks().forEach(track => track.enabled = isMicEnabled);
+                    updateAVUI();
+                }
+            });
+
+            // Meme Upload handler (Splatting memes onto arena background)
+            memeUploadInput.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                if (file.size > 100 * 1024 * 1024) { // 100MB upper constraint
+                    alertUser("The uploaded file must be under 100MB!");
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = function(evt) {
+                    const base64Data = evt.target.result;
+                    // Draw locally immediately
+                    triggerMemeSplat(base64Data, myId);
+
+                    // Broadcast base64 string to everyone else over Data channels
+                    broadcastData({
+                        type: 'SPLAT_MEME',
+                        ownerId: myId,
+                        imgBase64: base64Data
+                    });
+                };
+                reader.readAsDataURL(file);
             });
 
             // Clipboard copy Room Code
             copyCodeBtn.addEventListener('click', () => {
                 const code = lobbyRoomCode.innerText;
                 if (code !== '-----') {
-                    // Standard reliable copy fallback to fit in Canvas iframe sandbox
                     const temp = document.createElement('textarea');
                     temp.value = code;
                     document.body.appendChild(temp);
@@ -912,7 +1049,7 @@
                             copyCodeBtn.innerHTML = '<i class="fa-regular fa-copy"></i> Copy';
                         }, 2000);
                     } catch (e) {
-                        alertUser("Could not automatically copy. Please write down: " + code);
+                        alertUser("Could not copy automatically. Code: " + code);
                     }
                     document.body.removeChild(temp);
                 }
@@ -933,16 +1070,14 @@
                     timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
                 };
 
-                // Add locally
                 addChatMessage(msgData);
-                // Broadcast to everyone
                 broadcastData(msgData);
 
                 lobbyChatInput.value = '';
                 lobbyChatInput.focus();
             });
 
-            // Keyboard capture for game control inputs
+            // Keyboard capture for game control inputs (instant local movement for self)
             window.addEventListener('keydown', (e) => {
                 if (gameState.gamePhase !== 'PLAYING') return;
                 const activeTag = document.activeElement ? document.activeElement.tagName : '';
@@ -981,15 +1116,16 @@
                 const pSelf = gameState.players[myId];
                 if (pSelf) {
                     localPlayerState.angle = Math.atan2(mouseY - pSelf.y, mouseX - pSelf.x);
+                    pSelf.angle = localPlayerState.angle; // Instant local feedback
                 }
             });
 
             gameCanvas.addEventListener('mousedown', (e) => {
                 if (gameState.gamePhase !== 'PLAYING') return;
                 e.preventDefault();
-                if (e.button === 0) { // Left Click - Fire
+                if (e.button === 0) {
                     requestLocalFire();
-                } else if (e.button === 2) { // Right Click - Nitro
+                } else if (e.button === 2) {
                     localPlayerState.isBurstActive = true;
                 }
             });
@@ -1000,10 +1136,7 @@
                 }
             });
 
-            // Prevent context menu on gameCanvas
             gameCanvas.addEventListener('contextmenu', e => e.preventDefault());
-
-            // Resize canvas on layout update
             window.addEventListener('resize', adaptCanvasResolution);
 
             // Host controls
@@ -1024,7 +1157,6 @@
             });
 
             endLobbyBtn.addEventListener('click', () => {
-                // Reset phase and screens
                 statsModal.classList.add('hidden');
                 displayPanel('lobby');
                 resetLocalGameState();
@@ -1040,7 +1172,6 @@
                 startGameRound();
             });
 
-            // Setup Mobile / Touch input captures
             setupTouchControls();
         }
 
@@ -1051,12 +1182,11 @@
                     document.createEvent("TouchEvent");
                     touchControls.classList.remove('hidden');
                 } catch (e) {
-                    // Not a touch device, keep hidden
+                    // Touch device check
                 }
             };
             checkTouchDevice();
 
-            // Handle virtual joystick logic
             virtualJoystickBg.addEventListener('touchstart', (e) => {
                 isJoystickActive = true;
                 const touch = e.touches[0];
@@ -1079,7 +1209,6 @@
                 isJoystickActive = false;
                 joystickVector = { x: 0, y: 0 };
                 virtualJoystickHandle.style.transform = `translate(0px, 0px)`;
-                // Reset fake movement keys
                 localPlayerState.pressingKeys = {};
             };
 
@@ -1087,7 +1216,7 @@
             virtualJoystickBg.addEventListener('touchcancel', stopJoystick);
 
             function updateJoystickHandle(touch) {
-                const maxRadius = 40; // max handle slide offset px
+                const maxRadius = 40;
                 let dx = touch.clientX - joystickStart.x;
                 let dy = touch.clientY - joystickStart.y;
                 let dist = Math.sqrt(dx * dx + dy * dy);
@@ -1100,28 +1229,23 @@
 
                 virtualJoystickHandle.style.transform = `translate(${dx}px, ${dy}px)`;
 
-                // Map to normalized input direction vector
                 joystickVector.x = dx / maxRadius;
                 joystickVector.y = dy / maxRadius;
 
-                // Simulate keypress direction maps for universal engine compatibility
                 localPlayerState.pressingKeys = {};
                 if (joystickVector.y < -0.3) localPlayerState.pressingKeys['KeyW'] = true;
                 if (joystickVector.y > 0.3) localPlayerState.pressingKeys['KeyS'] = true;
                 if (joystickVector.x < -0.3) localPlayerState.pressingKeys['KeyA'] = true;
                 if (joystickVector.x > 0.3) localPlayerState.pressingKeys['KeyD'] = true;
 
-                // Set targeting rotation based on joystick vector direction too
                 localPlayerState.angle = Math.atan2(joystickVector.y, joystickVector.x);
             }
 
-            // Touch fire trigger
             touchShootBtn.addEventListener('touchstart', (e) => {
                 e.preventDefault();
                 requestLocalFire();
             });
 
-            // Touch Nitro / Action trigger
             touchActionBtn.addEventListener('touchstart', (e) => {
                 e.preventDefault();
                 localPlayerState.isBurstActive = true;
@@ -1131,7 +1255,31 @@
             });
         }
 
-        // Display safe flash / shake triggers
+        // Handle drawing of graffiti/memes onto the arena floor
+        function triggerMemeSplat(base64Data, ownerId) {
+            const img = new Image();
+            img.src = base64Data;
+            img.onload = function() {
+                const associatedPlayer = gameState.players[ownerId] || { x: VIRTUAL_WIDTH / 2, y: VIRTUAL_HEIGHT / 2 };
+                splatMemes.push({
+                    img: img,
+                    x: associatedPlayer.x,
+                    y: associatedPlayer.y,
+                    size: 150 + Math.random() * 50,
+                    rotation: Math.random() * Math.PI * 2,
+                    alpha: 1.0,
+                    timestamp: Date.now()
+                });
+                
+                // Limit maximum active memes to prevent rendering slows
+                if (splatMemes.length > 10) {
+                    splatMemes.shift();
+                }
+                
+                sfx.playBoing();
+            };
+        }
+
         function triggerScreenFlash(color) {
             chaosScreenFlash.style.backgroundColor = color;
             setTimeout(() => {
@@ -1139,9 +1287,7 @@
             }, 100);
         }
 
-        // Notification interface overlay
         function alertUser(msg) {
-            // Replaces legacy alert() block which causes system loop crashes in sandboxed subframes
             const block = document.createElement('div');
             block.className = "fixed top-8 left-1/2 -translate-x-1/2 bg-red-950 border-2 border-red-500 text-red-200 px-6 py-4 rounded-2xl shadow-2xl z-[200] flex items-center gap-3 animate-bounce";
             block.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-xl"></i> <span class="font-bold text-sm">${msg}</span>`;
@@ -1149,7 +1295,6 @@
             setTimeout(() => block.remove(), 4000);
         }
 
-        // Set screen state panels
         function displayPanel(target) {
             menuPanel.classList.add('hidden');
             lobbyPanel.classList.add('hidden');
@@ -1165,7 +1310,6 @@
             }
         }
 
-        // Dynamically size and map game elements relative to display densities
         function adaptCanvasResolution() {
             const width = gameCanvas.parentElement.clientWidth;
             const height = gameCanvas.parentElement.clientHeight;
@@ -1173,7 +1317,6 @@
             gameCanvas.height = height;
         }
 
-        // Handle text chat insertions
         function addChatMessage(data) {
             const row = document.createElement('div');
             row.className = "bg-white/5 p-2 rounded-xl border-l-4 transition-all hover:bg-white/10 flex flex-col gap-0.5";
@@ -1196,13 +1339,42 @@
             );
         }
 
-        // Clean user's name setup
         function capturePlayerProfile() {
             myName = playerNameInput.value.trim();
             if (!myName) {
                 myName = "Player_" + Math.floor(Math.random() * 999);
             }
-            // Update UI profile trackers
+        }
+
+        // Initiates calls with camera streams to all currently active peer participants
+        function initiateAVPeersCall() {
+            if (!localMediaStream) return;
+            connections.forEach(conn => {
+                console.log("Calling peer for video session:", conn.peer);
+                const call = peer.call(conn.peer, localMediaStream);
+                setupIncomingCallHandler(call);
+            });
+        }
+
+        function setupIncomingCallHandler(call) {
+            call.on('stream', (remoteStream) => {
+                console.log("Received remote video stream for connection:", call.peer);
+                let remoteVideo = remoteVideoElements[call.peer];
+                if (!remoteVideo) {
+                    remoteVideo = document.createElement('video');
+                    remoteVideo.autoplay = true;
+                    remoteVideo.playsInline = true;
+                    // Do not mute remote players so we hear their audio!
+                    remoteVideo.muted = false; 
+                    remoteVideoElements[call.peer] = remoteVideo;
+                    remoteVideoContainer.appendChild(remoteVideo);
+                }
+                remoteVideo.srcObject = remoteStream;
+            });
+
+            call.on('error', (err) => {
+                console.error("Video stream pipeline crash:", err);
+            });
         }
 
         // --- Core PeerJS Communication Sync System ---
@@ -1210,13 +1382,11 @@
             capturePlayerProfile();
             isHost = hostMode;
 
-            // Update interface connecting statuses
             connectionStatus.className = "flex items-center gap-2 bg-yellow-950/40 border border-yellow-500/30 px-3 py-1.5 rounded-full text-xs text-yellow-400 font-semibold";
             connectionStatus.innerHTML = `<span class="w-2.5 h-2.5 rounded-full bg-yellow-500 animate-spin"></span><span>CONNECTING...</span>`;
 
             const generatedId = hostMode ? 'CHAOZ-' + generateRoomCode() : 'CHAOZ-TEMP-' + Math.floor(10000 + Math.random() * 90000);
 
-            // Use default public PeerJS infrastructure
             peer = new Peer(generatedId);
 
             peer.on('open', (id) => {
@@ -1229,26 +1399,34 @@
                     connectionStatus.className = "flex items-center gap-2 bg-emerald-950/40 border border-emerald-500/30 px-3 py-1.5 rounded-full text-xs text-emerald-400 font-semibold";
                     connectionStatus.innerHTML = `<span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span><span>HOSTING ROOM: ${roomCode}</span>`;
                     
-                    // Show configurations
                     hostControls.classList.remove('hidden');
                     clientStatus.classList.add('hidden');
                     gameHostControlPanel.classList.remove('hidden');
 
-                    // Register self as player 1
                     resetLocalGameState();
                     registerNewPlayer(myId, myName, myAvatar, myColor);
                     
-                    // Enter lobby panel
                     displayPanel('lobby');
                     updateLobbyListUI();
                     sfx.playPowerUp();
                 } else {
-                    // Try to connect to Host peer ID
                     const hostId = 'CHAOZ-' + targetCode;
                     const conn = peer.connect(hostId);
-                    
                     setupClientConnection(conn);
                 }
+            });
+
+            // Handshake listener for incoming calls (webcam streams)
+            peer.on('call', (call) => {
+                console.log("Incoming call from:", call.peer);
+                // Prompt/Auto-answer
+                if (localMediaStream) {
+                    call.answer(localMediaStream);
+                } else {
+                    // Try to answer with null stream just to receive their camera stream!
+                    call.answer();
+                }
+                setupIncomingCallHandler(call);
             });
 
             peer.on('connection', (conn) => {
@@ -1258,8 +1436,8 @@
             });
 
             peer.on('error', (err) => {
-                console.error('PeerJS internal connection error:', err);
-                alertUser("Network Error: Make sure Room Code is correct and online.");
+                console.error('PeerJS connection error:', err);
+                alertUser("Network Error! Check room code or active status.");
                 resetToMenuState();
             });
 
@@ -1284,22 +1462,30 @@
         // --- Host Side Connection Processors ---
         function setupHostConnection(conn) {
             conn.on('open', () => {
-                console.log('Remote peer client connected:', conn.peer);
+                console.log('Client connected directly to Host:', conn.peer);
                 connections.push(conn);
 
-                // Wait for the client to transmit player registration payload
+                // Auto call player back with webcam if we have webcam streaming active
+                if (localMediaStream) {
+                    setTimeout(() => {
+                        console.log("Calling recently connected player for video exchange:", conn.peer);
+                        const call = peer.call(conn.peer, localMediaStream);
+                        setupIncomingCallHandler(call);
+                    }, 1000);
+                }
+
                 conn.on('data', (data) => {
                     handleHostReceivedData(conn, data);
                 });
             });
 
             conn.on('close', () => {
-                console.log('Client connection closed:', conn.peer);
+                console.log('Client disconnected:', conn.peer);
                 removeClientConnection(conn.peer);
             });
 
             conn.on('error', (err) => {
-                console.error('Client link crashed:', err);
+                console.error('Client link error:', err);
                 removeClientConnection(conn.peer);
             });
         }
@@ -1307,6 +1493,11 @@
         function removeClientConnection(peerId) {
             connections = connections.filter(c => c.peer !== peerId);
             delete gameState.players[peerId];
+            delete interpCache[peerId];
+            if (remoteVideoElements[peerId]) {
+                remoteVideoElements[peerId].srcObject = null;
+                delete remoteVideoElements[peerId];
+            }
             updateLobbyListUI();
             broadcastGameState();
         }
@@ -1315,7 +1506,6 @@
             if (data.type === 'REGISTER_PLAYER') {
                 registerNewPlayer(conn.peer, data.name, data.avatar, data.color);
                 
-                // Welcome client with initial setup confirmation
                 conn.send({
                     type: 'REGISTRATION_ACK',
                     clientId: conn.peer,
@@ -1340,21 +1530,23 @@
                     spawnBullet(p);
                 }
             }
+            else if (data.type === 'SPLAT_MEME') {
+                // Draw meme on host's screen
+                triggerMemeSplat(data.imgBase64, data.ownerId);
+                // Forward meme to all other connected clients
+                broadcastData(data, [conn.peer]);
+            }
             else if (data.type === 'SPAM_SOUND') {
-                // Play locally
                 playRemoteSound(data.code);
                 showSoundSpamAlert(`${data.sender} spammed sound!`);
-                // Forward sound trigger to all other connected clients
                 broadcastData(data, [conn.peer]);
             }
             else if (data.type === 'SPAM_REACTION') {
                 spawnFloatingEmoji(data.emoji, data.sender);
-                // Forward to all other clients
                 broadcastData(data, [conn.peer]);
             }
             else if (data.type === 'CHAT_MSG') {
                 addChatMessage(data);
-                // Forward message to all clients except sender
                 broadcastData(data, [conn.peer]);
             }
         }
@@ -1380,6 +1572,9 @@
                 burstCooldown: 0,
                 lastFired: 0
             };
+
+            // Initialize position interpolation coordinates
+            interpCache[id] = { x: gameState.players[id].x, y: gameState.players[id].y };
         }
 
         function updateLobbyListUI() {
@@ -1409,7 +1604,6 @@
         // Broadcaster for Host
         function broadcastData(data, excludePeers = []) {
             if (!isHost) {
-                // If a client wishes to broadcast, they send it directly to the Host, and the Host redistributes.
                 if (connections[0]) {
                     connections[0].send(data);
                 }
@@ -1447,7 +1641,6 @@
             conn.on('open', () => {
                 console.log('Connected to Host peer room!');
                 
-                // Submit registration details directly to server host
                 conn.send({
                     type: 'REGISTER_PLAYER',
                     name: myName,
@@ -1458,7 +1651,6 @@
                 connectionStatus.className = "flex items-center gap-2 bg-emerald-950/40 border border-emerald-500/30 px-3 py-1.5 rounded-full text-xs text-emerald-400 font-semibold";
                 connectionStatus.innerHTML = `<span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span><span>CONNECTED TO ROOM</span>`;
                 
-                // Show lobby and display info
                 lobbyRoomCode.innerText = conn.peer.replace('CHAOZ-', '');
                 hostControls.classList.add('hidden');
                 clientStatus.classList.remove('hidden');
@@ -1466,6 +1658,15 @@
 
                 displayPanel('lobby');
                 sfx.playPowerUp();
+
+                // Call Host if we already enabled camera
+                if (localMediaStream) {
+                    setTimeout(() => {
+                        console.log("Calling host peer for video session:", conn.peer);
+                        const call = peer.call(conn.peer, localMediaStream);
+                        setupIncomingCallHandler(call);
+                    }, 1000);
+                }
             });
 
             conn.on('data', (data) => {
@@ -1473,7 +1674,7 @@
             });
 
             conn.on('close', () => {
-                alertUser("Host disconnected from communication!");
+                alertUser("Host disconnected!");
                 resetToMenuState();
             });
 
@@ -1486,11 +1687,16 @@
         function handleClientReceivedData(data) {
             if (data.type === 'REGISTRATION_ACK') {
                 myId = data.clientId;
-                console.log('Registered by host. Assigned temporary ID:', myId);
+                console.log('Registered by host. My ID:', myId);
+                // Sync prediction position
+                interpCache[myId] = { x: localPlayerState.x, y: localPlayerState.y };
             }
             else if (data.type === 'STATE_UPDATE') {
                 const oldPhase = gameState.gamePhase;
                 
+                // Keep references of positions before update for smooth linear interpolation (lerp)
+                const playersCopy = JSON.parse(JSON.stringify(gameState.players));
+
                 // Re-hydrate local state directly from host
                 gameState.players = data.state.players;
                 gameState.bullets = data.state.bullets;
@@ -1501,20 +1707,38 @@
                 gameState.eventCountdown = data.state.eventCountdown;
                 gameState.gamePhase = data.state.gamePhase;
 
-                // Watch for game phase transitions
+                // Prime the interpolation cache with actual current render positions
+                Object.keys(gameState.players).forEach(pId => {
+                    const latest = gameState.players[pId];
+                    if (!interpCache[pId]) {
+                        interpCache[pId] = { x: latest.x, y: latest.y };
+                    } else if (pId !== myId) {
+                        // Update player coordinate checkpoints, but preserve existing interp slide positions
+                    }
+                });
+
+                // Phase transitions
                 if (oldPhase !== 'PLAYING' && gameState.gamePhase === 'PLAYING') {
+                    // Sync our physics starting positions
+                    const myServerP = gameState.players[myId];
+                    if (myServerP) {
+                        localPlayerState.x = myServerP.x;
+                        localPlayerState.y = myServerP.y;
+                    }
                     displayPanel('game');
                 }
                 else if (oldPhase !== 'STATS' && gameState.gamePhase === 'STATS') {
                     showEndStatsModal();
                 }
 
-                // Synchronize lobby display lists if in lobby
                 if (gameState.gamePhase === 'LOBBY') {
                     updateLobbyListUI();
                 } else if (gameState.gamePhase === 'PLAYING') {
                     syncHUDAndLeaderboardUI();
                 }
+            }
+            else if (data.type === 'SPLAT_MEME') {
+                triggerMemeSplat(data.imgBase64, data.ownerId);
             }
             else if (data.type === 'SPAM_SOUND') {
                 playRemoteSound(data.code);
@@ -1552,9 +1776,8 @@
             gameState.gamePhase = 'PLAYING';
             gameState.currentEvent = 'NONE';
             gameState.eventCountdown = parseInt(eventTimerSelect.value) || 15;
-            gameTimeLeft = 120; // 2 minutes duration standard
+            gameTimeLeft = 120;
 
-            // Scatter players to clean positions inside the safe arena
             const keys = Object.keys(gameState.players);
             keys.forEach((key, idx) => {
                 const angle = (idx / keys.length) * Math.PI * 2;
@@ -1568,39 +1791,35 @@
                 gameState.players[key].score = 0;
                 gameState.players[key].kills = 0;
                 gameState.players[key].deaths = 0;
+
+                interpCache[key] = { x: gameState.players[key].x, y: gameState.players[key].y };
             });
 
-            // If tag mode active, designate 1 random active player with the thermonuclear bomb carrier flag
             if (gameModeSelect.value === 'bomb' && keys.length > 0) {
                 const luckyTag = keys[Math.floor(Math.random() * keys.length)];
                 gameState.players[luckyTag].isBombCarrier = true;
                 
-                // Spawn thermonuclear ticking clock bomb linked with tracking
                 gameState.bombs = [{
                     x: gameState.players[luckyTag].x,
                     y: gameState.players[luckyTag].y,
                     carrierId: luckyTag,
-                    fuseTime: 12.0 // 12 seconds per detonation limit
+                    fuseTime: 12.0
                 }];
             }
 
-            // Fire sound board triggers for launching
             broadcastData({ type: 'SOUND_TRIGGER', soundType: 'POWER' });
             sfx.playPowerUp();
 
-            // Setup tick interval loops
             if (gameTimerInterval) clearInterval(gameTimerInterval);
             gameTimerInterval = setInterval(() => {
                 if (gameState.gamePhase !== 'PLAYING') return;
                 
-                // Track matches times
                 gameTimeLeft--;
                 if (gameTimeLeft <= 0) {
                     wrapUpGameRound();
                     return;
                 }
 
-                // Handle Chaos Mutator countdown timers
                 if (eventTimerSelect.value !== '0') {
                     gameState.eventCountdown--;
                     if (gameState.eventCountdown <= 0) {
@@ -1611,7 +1830,6 @@
                 broadcastGameState();
             }, 1000);
 
-            // Immediately change screens
             displayPanel('game');
             broadcastGameState();
         }
@@ -1622,24 +1840,18 @@
             gameState.currentEvent = chosen;
             gameState.eventCountdown = parseInt(eventTimerSelect.value) || 15;
 
-            // Trigger sound effects for event
             broadcastData({ type: 'SOUND_TRIGGER', soundType: 'SCREAM' });
             sfx.playScream();
 
-            // Trigger neon screen flashes
             broadcastData({ type: 'SCREEN_FLASH', color: 'rgba(168, 85, 247, 0.2)' });
             triggerScreenFlash('rgba(168, 85, 247, 0.2)');
-
-            // Handle immediate event effects
-            if (chosen === 'BLACK_HOLE') {
-                // Instantly generate a temporary safeZone shrink or center vacuum pulls
-            }
         }
 
         function resetLocalGameState() {
             gameState.bullets = [];
             gameState.bombs = [];
             gameState.explosions = [];
+            splatMemes = [];
             gameState.safeZone = { x: VIRTUAL_WIDTH / 2, y: VIRTUAL_HEIGHT / 2, radius: 450 };
         }
 
@@ -1648,13 +1860,11 @@
             gameState.gamePhase = 'STATS';
             if (gameTimerInterval) clearInterval(gameTimerInterval);
             
-            // Broadcast statistics updates to force stats display page
             broadcastGameState();
             showEndStatsModal();
         }
 
         function showEndStatsModal() {
-            // Sort players list according to high Score rankings
             const ranked = Object.values(gameState.players).sort((a, b) => b.score - a.score);
             const winner = ranked[0] || { avatar: '🤖', name: 'Noone', score: 0, kills: 0 };
 
@@ -1681,7 +1891,6 @@
                 endStatsList.appendChild(item);
             });
 
-            // Only show play again to host
             if (isHost) {
                 hostRestartBtn.classList.remove('hidden');
             } else {
@@ -1691,11 +1900,9 @@
             statsModal.classList.remove('hidden');
         }
 
-        // Direct inputs for weapons
         function requestLocalFire() {
             if (gameState.gamePhase !== 'PLAYING') return;
             
-            // Check alive before firing
             const p = gameState.players[myId];
             if (p && p.isDead) return;
 
@@ -1713,15 +1920,15 @@
         function spawnBullet(player) {
             if (!player) return;
             const now = Date.now();
-            if (now - player.lastFired < 200) return; // rate limit 200ms
+            if (now - player.lastFired < 200) return;
             player.lastFired = now;
 
-            // Compute bullet sizes relative to active mutators
             let speedMod = 1;
             if (gameState.currentEvent === 'BOUNCY_MADNESS') speedMod = 1.6;
 
             const bSpeed = 10 * speedMod;
             gameState.bullets.push({
+                id: Math.random().toString(36).substring(2, 9),
                 x: player.x + Math.cos(player.angle) * 20,
                 y: player.y + Math.sin(player.angle) * 20,
                 vx: Math.cos(player.angle) * bSpeed,
@@ -1733,10 +1940,62 @@
                 radius: 5
             });
 
-            // Local trigger firing sounds
             sfx.playLaser();
-            // Broadcast sound trigger
             broadcastData({ type: 'SOUND_TRIGGER', soundType: 'LASER' });
+        }
+
+        // Apply local prediction logic to make own player's movement responsive instantly
+        function applyLocalClientPrediction() {
+            const pSelf = gameState.players[myId];
+            if (!pSelf || pSelf.isDead) return;
+
+            // Compute physics speed variables locally
+            let speedMultiplier = 1.0;
+            if (gameState.currentEvent === 'SUPER_SPEED') speedMultiplier = 2.4;
+            if (gameState.currentEvent === 'TINY_TERROR') speedMultiplier = 1.5;
+            if (gameState.currentEvent === 'GIANT_SIZE') speedMultiplier = 0.6;
+
+            let isBursting = localPlayerState.isBurstActive;
+            if (isBursting) speedMultiplier *= 2.2;
+
+            let ax = 0;
+            let ay = 0;
+            const force = 0.6 * speedMultiplier;
+
+            if (localPlayerState.pressingKeys['KeyW'] || localPlayerState.pressingKeys['ArrowUp']) ay -= force;
+            if (localPlayerState.pressingKeys['KeyS'] || localPlayerState.pressingKeys['ArrowDown']) ay += force;
+            if (localPlayerState.pressingKeys['KeyA'] || localPlayerState.pressingKeys['ArrowLeft']) ax -= force;
+            if (localPlayerState.pressingKeys['KeyD'] || localPlayerState.pressingKeys['ArrowRight']) ax += force;
+
+            pSelf.vx += ax;
+            pSelf.vy += ay;
+            pSelf.vx *= 0.92;
+            pSelf.vy *= 0.92;
+
+            // Direct local gravity shift simulation for Black hole event
+            if (gameState.currentEvent === 'BLACK_HOLE') {
+                const dx = VIRTUAL_WIDTH / 2 - pSelf.x;
+                const dy = VIRTUAL_HEIGHT / 2 - pSelf.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                if (dist > 10) {
+                    pSelf.vx += (dx / dist) * 0.18;
+                    pSelf.vy += (dy / dist) * 0.18;
+                }
+            }
+
+            pSelf.x += pSelf.vx;
+            pSelf.y += pSelf.vy;
+
+            // Arena boundary limits
+            const pRad = 16 * (gameState.currentEvent === 'GIANT_SIZE' ? 1.8 : gameState.currentEvent === 'TINY_TERROR' ? 0.5 : 1.0);
+            const limit = pRad + 5;
+            if (pSelf.x < limit) { pSelf.x = limit; pSelf.vx *= -0.8; }
+            if (pSelf.x > VIRTUAL_WIDTH - limit) { pSelf.x = VIRTUAL_WIDTH - limit; pSelf.vx *= -0.8; }
+            if (pSelf.y < limit) { pSelf.y = limit; pSelf.vy *= -0.8; }
+            if (pSelf.y > VIRTUAL_HEIGHT - limit) { pSelf.y = VIRTUAL_HEIGHT - limit; pSelf.vy *= -0.8; }
+
+            // Sync predicted values into the interp cache instantly so there's zero lerping lag for self
+            interpCache[myId] = { x: pSelf.x, y: pSelf.y };
         }
 
         // --- Master authoritative Host physics step update ---
@@ -1744,45 +2003,38 @@
             if (!isHost || gameState.gamePhase !== 'PLAYING') return;
 
             const safeZone = gameState.safeZone;
-            // Shrink SafeZone slowly based on match timer
             if (safeZone.radius > 160) {
                 safeZone.radius -= 0.08;
             }
 
-            // Update Bombs tag behaviors
             gameState.bombs.forEach(b => {
                 b.fuseTime -= 1/60;
                 
-                // Track positions to follow carrier coordinates
                 const carrier = gameState.players[b.carrierId];
                 if (carrier) {
                     b.x = carrier.x;
                     b.y = carrier.y;
                 }
 
-                // Boom timer trigger!
                 if (b.fuseTime <= 0) {
                     triggerBombDetonation(b);
                 }
             });
 
-            // Remove exploded bombs
             gameState.bombs = gameState.bombs.filter(b => b.fuseTime > 0);
 
-            // Update Explosions animations
             gameState.explosions.forEach(exp => {
                 exp.radius += 4;
                 exp.alpha -= 0.02;
             });
             gameState.explosions = gameState.explosions.filter(exp => exp.alpha > 0);
 
-            // Process players
             const pKeys = Object.keys(gameState.players);
             pKeys.forEach(k => {
                 const p = gameState.players[k];
                 if (p.isDead) return;
 
-                // Handle inputs locally (since Host player profile keys are checked instantly)
+                // Grab remote inputs or local host keys
                 let finalKeys = p.pressingKeys;
                 if (p.id === myId) {
                     finalKeys = localPlayerState.pressingKeys;
@@ -1790,7 +2042,6 @@
                     p.isBurstActive = localPlayerState.isBurstActive;
                 }
 
-                // Resolve event speeds modifier multipliers
                 let speedMultiplier = 1.0;
                 let sizeScale = 1.0;
 
@@ -1804,13 +2055,9 @@
                     speedMultiplier = 0.6;
                 }
 
-                // Check speed burst boosts
-                let isBursting = p.isBurstActive && p.burstCooldown <= 0;
-                if (isBursting) {
-                    speedMultiplier *= 2.2;
-                }
+                let isBursting = p.isBurstActive;
+                if (isBursting) speedMultiplier *= 2.2;
 
-                // Process movement vectors
                 let ax = 0;
                 let ay = 0;
                 const force = 0.6 * speedMultiplier;
@@ -1818,16 +2065,13 @@
                 if (finalKeys['KeyW'] || finalKeys['ArrowUp']) ay -= force;
                 if (finalKeys['KeyS'] || finalKeys['ArrowDown']) ay += force;
                 if (finalKeys['KeyA'] || finalKeys['ArrowLeft']) ax -= force;
-                if (finalKeys['KeyD'] || finalKeys['ArrowRight']) ax += keyThrustRightMod(finalKeys);
+                if (finalKeys['KeyD'] || finalKeys['ArrowRight']) ax += force;
 
                 p.vx += ax;
                 p.vy += ay;
-
-                // Friction
                 p.vx *= 0.92;
                 p.vy *= 0.92;
 
-                // Black hole event pulls players toward center arena coordinates
                 if (gameState.currentEvent === 'BLACK_HOLE') {
                     const dx = VIRTUAL_WIDTH / 2 - p.x;
                     const dy = VIRTUAL_HEIGHT / 2 - p.y;
@@ -1838,11 +2082,9 @@
                     }
                 }
 
-                // Apply velocities
                 p.x += p.vx;
                 p.y += p.vy;
 
-                // Safe outer wall limits bounce back bounds checks
                 const pRad = 16 * sizeScale;
                 const boundaryPadding = pRad + 5;
 
@@ -1851,20 +2093,17 @@
                 if (p.y < boundaryPadding) { p.y = boundaryPadding; p.vy *= -0.8; }
                 if (p.y > VIRTUAL_HEIGHT - boundaryPadding) { p.y = VIRTUAL_HEIGHT - boundaryPadding; p.vy *= -0.8; }
 
-                // Check safe zone out-of-bounds damage (Shrinking Ring)
+                // Safe zone circle damage
                 const cDistX = p.x - safeZone.x;
                 const cDistY = p.y - safeZone.y;
                 const distFromCenter = Math.sqrt(cDistX * cDistX + cDistY * cDistY);
                 if (distFromCenter > safeZone.radius) {
-                    // Bleed point decay instantly
                     p.score = Math.max(0, p.score - 0.05);
-                    // Emit small hurt particles on clients
                 } else {
-                    // Accumulate reward scores for surviving inside boundaries safely
                     p.score += 0.02;
                 }
 
-                // Resolve player-to-player collision interactions (Chaos bounce tag!)
+                // Elastic physics bounce & tags
                 pKeys.forEach(k2 => {
                     if (k === k2) return;
                     const p2 = gameState.players[k2];
@@ -1876,7 +2115,6 @@
                     const minDist = pRad * 2;
 
                     if (dist < minDist && dist > 0) {
-                        // Elastic collision pushbacks
                         const overlap = minDist - dist;
                         const nx = dx / dist;
                         const ny = dy / dist;
@@ -1886,7 +2124,6 @@
                         p2.x += nx * overlap * 0.5;
                         p2.y += ny * overlap * 0.5;
 
-                        // Swap bomb carrier flag on physical touch (BOMB TAG MODE!)
                         if (gameModeSelect.value === 'bomb') {
                             if (p.isBombCarrier && !p2.isBombCarrier) {
                                 p.isBombCarrier = false;
@@ -1902,17 +2139,11 @@
                 });
             });
 
-            // Helper for handling steering keys checks
-            function keyThrustRightMod(keys) {
-                return (keys['KeyD'] || keys['ArrowRight']) ? 0.6 : 0;
-            }
-
-            // Process bullets velocities and hits checks
-            gameState.bullets.forEach((b, idx) => {
+            // Process bullet collisions
+            gameState.bullets.forEach((b) => {
                 b.x += b.vx;
                 b.y += b.vy;
 
-                // Wall bounce mechanics
                 const bulletSize = b.radius || 5;
                 if (b.x < bulletSize || b.x > VIRTUAL_WIDTH - bulletSize) {
                     b.vx *= -1;
@@ -1923,39 +2154,32 @@
                     b.bounceCount++;
                 }
 
-                // Check bullet collisions on active players
                 pKeys.forEach(pk => {
                     const player = gameState.players[pk];
-                    if (player.isDead || b.ownerId === pk) return; // ignore self shots
+                    if (player.isDead || b.ownerId === pk) return;
 
                     const dx = player.x - b.x;
                     const dy = player.y - b.y;
                     const dist = Math.sqrt(dx * dx + dy * dy);
                     if (dist < 20) {
-                        // Bullet hits player!
                         player.isDead = true;
                         player.deaths++;
                         
-                        // Award kills to bullet owner
                         const owner = gameState.players[b.ownerId];
                         if (owner) {
                             owner.kills++;
-                            owner.score += 5; // Reward points for direct hit counts
+                            owner.score += 5;
                         }
 
-                        // Broadcast explosion & soundबोर्ड triggers
                         createAuthoritativeExplosion(player.x, player.y, player.color);
                         broadcastData({ type: 'SOUND_TRIGGER', soundType: 'DEATH' });
                         sfx.playDeath();
 
-                        // Immediate screen flash
                         broadcastData({ type: 'SCREEN_FLASH', color: 'rgba(239, 68, 68, 0.25)' });
                         triggerScreenFlash('rgba(239, 68, 68, 0.25)');
 
-                        // Mark bullet for removal
                         b.bounceCount = 99;
 
-                        // Respawn dead player after 3.5 seconds
                         setTimeout(() => {
                             if (gameState.gamePhase === 'PLAYING' && gameState.players[pk]) {
                                 gameState.players[pk].isDead = false;
@@ -1967,14 +2191,12 @@
                 });
             });
 
-            // Filter expired/removed bullets
             gameState.bullets = gameState.bullets.filter(b => b.bounceCount <= b.maxBounces);
         }
 
         function updateBombCarrier(newCarrierId) {
             if (gameState.bombs[0]) {
                 gameState.bombs[0].carrierId = newCarrierId;
-                // Blast custom boing sound to warn about hot potato exchanges
                 broadcastData({ type: 'SOUND_TRIGGER', soundType: 'BOING' });
                 sfx.playBoing();
             }
@@ -1985,18 +2207,16 @@
             if (carrier) {
                 carrier.isDead = true;
                 carrier.deaths++;
-                carrier.score = Math.max(0, carrier.score - 10); // penalize explosion
+                carrier.score = Math.max(0, carrier.score - 10);
 
                 createAuthoritativeExplosion(carrier.x, carrier.y, '#FF3131');
                 
-                // Blast sound notifications
                 broadcastData({ type: 'SOUND_TRIGGER', soundType: 'EXPLOSION' });
                 sfx.playExplosion();
 
                 broadcastData({ type: 'SCREEN_FLASH', color: 'rgba(239, 68, 68, 0.6)' });
                 triggerScreenFlash('rgba(239, 68, 68, 0.6)');
 
-                // Respawn dead player
                 const pk = bomb.carrierId;
                 setTimeout(() => {
                     if (gameState.gamePhase === 'PLAYING' && gameState.players[pk]) {
@@ -2008,7 +2228,6 @@
                 }, 3500);
             }
 
-            // Appoint a new bomb ticking sequence on another random surviving player
             setTimeout(() => {
                 if (gameState.gamePhase !== 'PLAYING') return;
                 const keys = Object.keys(gameState.players).filter(k => !gameState.players[k].isDead);
@@ -2054,12 +2273,10 @@
                 eventCountdownContainer.classList.add('hidden');
             }
 
-            // Convert round duration values to clean clock formats
             const mins = Math.floor(gameTimeLeft / 60);
             const secs = gameTimeLeft % 60;
             hudGameTimer.innerText = `${mins}:${secs < 10 ? '0' : ''}${secs}`;
 
-            // Sync Leaderboard UI elements
             const sorted = Object.values(gameState.players).sort((a, b) => b.score - a.score);
             gameLeaderboardList.innerHTML = '';
             sorted.forEach((p, idx) => {
@@ -2083,22 +2300,22 @@
         function runMasterCanvasRenderLoop() {
             requestAnimationFrame(runMasterCanvasRenderLoop);
 
-            // Execute input sends or host steps updates
-            if (isHost && gameState.gamePhase === 'PLAYING') {
-                updateAuthoritativePhysics();
-            } else if (!isHost && gameState.gamePhase === 'PLAYING') {
-                // Client periodically sends steering data
-                sendClientInputUpdate();
+            if (gameState.gamePhase === 'PLAYING') {
+                if (isHost) {
+                    updateAuthoritativePhysics();
+                } else {
+                    applyLocalClientPrediction();
+                    sendClientInputUpdate();
+                }
             }
 
-            // Render Arena elements
             renderActiveCanvasArena();
         }
 
         let lastInputSend = 0;
         function sendClientInputUpdate() {
             const now = Date.now();
-            if (now - lastInputSend < 33) return; // 30Hz transmission limit to prevent buffer chokes
+            if (now - lastInputSend < 33) return; // 30Hz limit
             lastInputSend = now;
 
             if (connections[0] && connections[0].open) {
@@ -2113,12 +2330,10 @@
 
         // --- Drawing Engine functions ---
         function renderActiveCanvasArena() {
-            // Clean canvas frame
             ctx.clearRect(0, 0, gameCanvas.width, gameCanvas.height);
 
             if (gameState.gamePhase !== 'PLAYING') return;
 
-            // Compute actual canvas scale conversions matching original 800x600 coordinate scales
             const scaleX = gameCanvas.width / VIRTUAL_WIDTH;
             const scaleY = gameCanvas.height / VIRTUAL_HEIGHT;
 
@@ -2139,6 +2354,24 @@
                 ctx.stroke();
             }
 
+            // Draw Splatted Memes onto the background layer
+            splatMemes.forEach(meme => {
+                ctx.save();
+                ctx.translate(meme.x * scaleX, meme.y * scaleY);
+                ctx.rotate(meme.rotation);
+                ctx.globalAlpha = meme.alpha;
+                // Draw rounded meme layout
+                ctx.drawImage(
+                    meme.img, 
+                    -meme.size * 0.5 * scaleX, 
+                    -meme.size * 0.5 * scaleY, 
+                    meme.size * scaleX, 
+                    meme.size * scaleY
+                );
+                ctx.restore();
+            });
+            ctx.globalAlpha = 1.0; // Reset alpha values
+
             // Draw Shrinking Arena bounds circle
             const sz = gameState.safeZone;
             ctx.beginPath();
@@ -2150,7 +2383,6 @@
             ctx.stroke();
             ctx.shadowBlur = 0; // reset glow
 
-            // Fill outer boundary with warning stripes patterns
             ctx.fillStyle = 'rgba(255, 0, 85, 0.04)';
             ctx.fill();
 
@@ -2181,22 +2413,41 @@
             });
             ctx.globalAlpha = 1.0; // reset
 
-            // Draw Players avatars
+            // Draw Players avatars with smooth linear interpolation (Lerp)
             Object.values(gameState.players).forEach(p => {
                 if (p.isDead) return;
 
-                // Set dynamic scaling sizes matching events mutators
                 let sizeScale = 1.0;
                 if (gameState.currentEvent === 'TINY_TERROR') sizeScale = 0.5;
                 if (gameState.currentEvent === 'GIANT_SIZE') sizeScale = 1.8;
 
                 const baseRad = 16 * sizeScale;
 
+                // --- POSITIONAL LERP ENGINE ---
+                if (!interpCache[p.id]) {
+                    interpCache[p.id] = { x: p.x, y: p.y };
+                }
+
+                // If it is another player, smoothly interpolate their rendering coordinates 
+                // towards the absolute coordinate updates received from host
+                if (p.id !== myId) {
+                    interpCache[p.id].x += (p.x - interpCache[p.id].x) * 0.35; // 35% lerp speed
+                    interpCache[p.id].y += (p.y - interpCache[p.id].y) * 0.35;
+                } else {
+                    // For the local player, we already calculated the predicted coordinate instantly
+                    interpCache[p.id].x = p.x;
+                    interpCache[p.id].y = p.y;
+                }
+
+                const renderX = interpCache[p.id].x;
+                const renderY = interpCache[p.id].y;
+
                 ctx.save();
-                ctx.translate(p.x * scaleX, p.y * scaleY);
+                ctx.translate(renderX * scaleX, renderY * scaleY);
 
                 // Draw neon engine thruster tail trails if moving
-                if (Object.keys(p.pressingKeys).length > 0) {
+                const isMoving = p.id === myId ? (Object.keys(localPlayerState.pressingKeys).length > 0) : (Object.keys(p.pressingKeys).length > 0);
+                if (isMoving) {
                     ctx.beginPath();
                     ctx.moveTo(-baseRad * scaleX, 0);
                     ctx.lineTo((-baseRad - 12 - Math.random() * 8) * scaleX, (Math.random() - 0.5) * 10 * scaleY);
@@ -2205,10 +2456,44 @@
                     ctx.stroke();
                 }
 
-                // Rotate rendering directions relative to tracking angle vectors
                 ctx.rotate(p.angle);
 
+                // Check if active video feed element is available for this peer player
+                const vElement = remoteVideoElements[p.id];
+                const hasActiveVideo = vElement && vElement.readyState === vElement.HAVE_ENOUGH_DATA;
+
+                if (hasActiveVideo) {
+                    // Circular Crop Video Avatar directly on canvas!
+                    ctx.beginPath();
+                    ctx.arc(0, 0, baseRad * scaleX, 0, Math.PI * 2);
+                    ctx.clip();
+                    
+                    // Draw webcam image frame
+                    ctx.drawImage(
+                        vElement, 
+                        -baseRad * scaleX, 
+                        -baseRad * scaleY, 
+                        baseRad * 2 * scaleX, 
+                        baseRad * 2 * scaleY
+                    );
+                } else {
+                    // Draw direct customizable central emoji
+                    ctx.fillStyle = 'rgba(15, 5, 30, 0.8)';
+                    ctx.beginPath();
+                    ctx.arc(0, 0, baseRad * scaleX, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    ctx.font = `${20 * sizeScale * scaleX}px sans-serif`;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(p.avatar, 0, 0);
+                }
+
+                ctx.restore();
+
                 // Draw external neon shield outlines ring glow
+                ctx.save();
+                ctx.translate(renderX * scaleX, renderY * scaleY);
                 ctx.beginPath();
                 ctx.arc(0, 0, baseRad * scaleX, 0, Math.PI * 2);
                 ctx.strokeStyle = p.color;
@@ -2216,29 +2501,16 @@
                 ctx.shadowColor = p.color;
                 ctx.shadowBlur = p.isBombCarrier ? 15 : 8;
                 ctx.stroke();
-                ctx.shadowBlur = 0; // reset
-
-                // Fill inside base body
-                ctx.fillStyle = 'rgba(15, 5, 30, 0.8)';
-                ctx.fill();
-
-                // Draw direct customizable central emojis
-                ctx.font = `${20 * sizeScale * scaleX}px sans-serif`;
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                ctx.fillText(p.avatar, 0, 0);
-
                 ctx.restore();
 
                 // Draw active ticking hot bomb details directly over carrier
                 if (p.isBombCarrier && gameState.bombs[0]) {
                     ctx.save();
-                    ctx.translate(p.x * scaleX, (p.y - 28) * scaleY);
+                    ctx.translate(renderX * scaleX, (renderY - 28) * scaleY);
                     ctx.font = `${22 * scaleX}px sans-serif`;
                     ctx.textAlign = 'center';
                     ctx.fillText('💣', 0, 0);
                     
-                    // Draw timer text
                     const fuse = gameState.bombs[0].fuseTime;
                     ctx.font = `bold ${10 * scaleX}px 'Lexend Deca', sans-serif`;
                     ctx.fillStyle = fuse < 4 ? '#ff0000' : '#ffffff';
@@ -2248,7 +2520,7 @@
 
                 // Draw nicknames overlays
                 ctx.save();
-                ctx.translate(p.x * scaleX, (p.y + baseRad + 12) * scaleY);
+                ctx.translate(renderX * scaleX, (renderY + baseRad + 12) * scaleY);
                 ctx.font = `bold ${10 * scaleX}px 'Lexend Deca', sans-serif`;
                 ctx.textAlign = 'center';
                 ctx.fillStyle = p.color;
@@ -2257,7 +2529,7 @@
             });
 
             // Draw direct floating fun reactions on top overlay Layer
-            floatingEmojis.forEach((emoji, idx) => {
+            floatingEmojis.forEach((emoji) => {
                 emoji.y += emoji.vy;
                 emoji.x += emoji.vx;
                 emoji.alpha -= 0.01;
@@ -2269,7 +2541,6 @@
                     ctx.textAlign = 'center';
                     ctx.fillText(emoji.emoji, emoji.x * scaleX, emoji.y * scaleY);
                     
-                    // Small sender tags underneath emojis
                     ctx.font = `bold ${8 * scaleX}px 'Lexend Deca', sans-serif`;
                     ctx.fillStyle = '#ff007f';
                     ctx.fillText(emoji.sender, emoji.x * scaleX, (emoji.y + 16) * scaleY);
@@ -2287,10 +2558,7 @@
             setupSoundboard();
             setupReactions();
 
-            // Set initial state screens
             displayPanel('menu');
-
-            // Fire running game rendering cycle
             runMasterCanvasRenderLoop();
         };
     </script>
