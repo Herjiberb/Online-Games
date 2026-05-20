@@ -121,6 +121,13 @@
                         <!-- Filled by JS -->
                     </div>
                 </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-gray-400 mb-1.5">NEON THRUSTER TRAIL STYLE</label>
+                    <div class="grid grid-cols-4 gap-2 bg-black/40 p-2 rounded-xl border border-purple-500/20" id="trailPicker">
+                        <!-- Filled by JS -->
+                    </div>
+                </div>
             </div>
 
             <!-- Join / Host Buttons -->
@@ -631,8 +638,8 @@
         }
         const sfx = new SoundEngine();
 
-        // Preset arrays for identities
-        const AVATARS = ['👽', '😈', '🤡', '🤠', '🤖', '💀', '💩', '🦄', '👺', '🐲', '🧟', '🧠', '🧙', '🐹', '🦖', '🚀', '🔥', '💎'];
+        // Universally compatible classic emojis to render correctly everywhere
+        const AVATARS = ['👽', '🤖', '🐱', '🐶', '🦊', '🐻', '🐼', '🐯', '🐸', '🐨', '🦖', '🦈', '👻', '🎃', '⭐', '🎈', '🎨', '🚀', '🔥', '💎'];
         const COLORS = [
             '#FF007F', // Neon Pink
             '#00F0FF', // Neon Cyan
@@ -645,7 +652,14 @@
             '#00FF87', // Seafoam Green
             '#1B75BC', // Steel Blue
             '#ED1C24', // Crimson
-            '#FFFFFF'  // White
+            '#4D4DFF'  // Royal Blue
+        ];
+
+        const TRAIL_STYLES = [
+            { id: 'plasma', label: 'Plasma 💖', color: '#ff007f' },
+            { id: 'spark', label: 'Spark ⚡', color: '#FF9F00' },
+            { id: 'void', label: 'Void 🌌', color: '#AE00FF' },
+            { id: 'matrix', label: 'Matrix 🟢', color: '#39FF14' }
         ];
 
         const SOUNDS = [
@@ -673,6 +687,7 @@
         let myName = '';
         let myAvatar = '👽';
         let myColor = '#FF007F';
+        let myTrailStyle = 'plasma';
         let isHost = false;
         let peer = null;
         let connections = []; // Direct P2P data channels
@@ -726,6 +741,7 @@
         const playerNameInput = document.getElementById('playerNameInput');
         const avatarPicker = document.getElementById('avatarPicker');
         const colorPicker = document.getElementById('colorPicker');
+        const trailPicker = document.getElementById('trailPicker');
 
         const lobbyPanel = document.getElementById('lobbyPanel');
         const lobbyRoomCode = document.getElementById('lobbyRoomCode');
@@ -834,6 +850,22 @@
                     sfx.playPowerUp();
                 });
                 colorPicker.appendChild(btn);
+            });
+
+            TRAIL_STYLES.forEach((trail, idx) => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = `py-1.5 px-2 rounded-lg text-[10px] font-bold border transition-all active:scale-95 ${idx === 0 ? 'border-pink-500 bg-pink-950/30' : 'border-purple-500/20 bg-black/40'}`;
+                btn.innerText = trail.label;
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('#trailPicker button').forEach(b => {
+                        b.className = "py-1.5 px-2 rounded-lg text-[10px] font-bold border transition-all active:scale-95 border-purple-500/20 bg-black/40";
+                    });
+                    btn.className = "py-1.5 px-2 rounded-lg text-[10px] font-bold border transition-all active:scale-95 border-pink-500 bg-pink-950/30";
+                    myTrailStyle = trail.id;
+                    sfx.playLaser();
+                });
+                trailPicker.appendChild(btn);
             });
         }
 
@@ -991,6 +1023,7 @@
                     isCamEnabled = !isCamEnabled;
                     localMediaStream.getVideoTracks().forEach(track => track.enabled = isCamEnabled);
                     updateAVUI();
+                    broadcastMediaToggle();
                 }
             });
 
@@ -1005,6 +1038,7 @@
                     isMicEnabled = !isMicEnabled;
                     localMediaStream.getAudioTracks().forEach(track => track.enabled = isMicEnabled);
                     updateAVUI();
+                    broadcastMediaToggle();
                 }
             });
 
@@ -1346,13 +1380,26 @@
             }
         }
 
+        // Inform other players that camera/mic status has changed
+        function broadcastMediaToggle() {
+            broadcastData({
+                type: 'MEDIA_STATE_CHANGE',
+                playerId: myId,
+                video: isCamEnabled,
+                audio: isMicEnabled
+            });
+        }
+
         // Initiates calls with camera streams to all currently active peer participants
         function initiateAVPeersCall() {
             if (!localMediaStream) return;
-            connections.forEach(conn => {
-                console.log("Calling peer for video session:", conn.peer);
-                const call = peer.call(conn.peer, localMediaStream);
-                setupIncomingCallHandler(call);
+            Object.keys(gameState.players).forEach(pId => {
+                if (pId === myId) return;
+                if (!remoteVideoElements[pId]) {
+                    console.log("Calling peer for video session:", pId);
+                    const call = peer.call(pId, localMediaStream);
+                    setupIncomingCallHandler(call);
+                }
             });
         }
 
@@ -1404,7 +1451,7 @@
                     gameHostControlPanel.classList.remove('hidden');
 
                     resetLocalGameState();
-                    registerNewPlayer(myId, myName, myAvatar, myColor);
+                    registerNewPlayer(myId, myName, myAvatar, myColor, myTrailStyle);
                     
                     displayPanel('lobby');
                     updateLobbyListUI();
@@ -1419,13 +1466,8 @@
             // Handshake listener for incoming calls (webcam streams)
             peer.on('call', (call) => {
                 console.log("Incoming call from:", call.peer);
-                // Prompt/Auto-answer
-                if (localMediaStream) {
-                    call.answer(localMediaStream);
-                } else {
-                    // Try to answer with null stream just to receive their camera stream!
-                    call.answer();
-                }
+                // Answer call with local stream if we have it, otherwise just answer to receive theirs!
+                call.answer(localMediaStream || undefined);
                 setupIncomingCallHandler(call);
             });
 
@@ -1504,7 +1546,7 @@
 
         function handleHostReceivedData(conn, data) {
             if (data.type === 'REGISTER_PLAYER') {
-                registerNewPlayer(conn.peer, data.name, data.avatar, data.color);
+                registerNewPlayer(conn.peer, data.name, data.avatar, data.color, data.trailStyle);
                 
                 conn.send({
                     type: 'REGISTRATION_ACK',
@@ -1549,14 +1591,23 @@
                 addChatMessage(data);
                 broadcastData(data, [conn.peer]);
             }
+            else if (data.type === 'MEDIA_STATE_CHANGE') {
+                // Forward state change to other clients to initiate mesh webcam calling
+                broadcastData(data, [conn.peer]);
+                if (data.video && localMediaStream && !remoteVideoElements[data.playerId]) {
+                    const call = peer.call(data.playerId, localMediaStream);
+                    setupIncomingCallHandler(call);
+                }
+            }
         }
 
-        function registerNewPlayer(id, name, avatar, color) {
+        function registerNewPlayer(id, name, avatar, color, trailStyle = 'plasma') {
             gameState.players[id] = {
                 id: id,
                 name: name,
                 avatar: avatar,
                 color: color,
+                trailStyle: trailStyle,
                 x: 100 + Math.random() * (VIRTUAL_WIDTH - 200),
                 y: 100 + Math.random() * (VIRTUAL_HEIGHT - 200),
                 vx: 0,
@@ -1645,7 +1696,8 @@
                     type: 'REGISTER_PLAYER',
                     name: myName,
                     avatar: myAvatar,
-                    color: myColor
+                    color: myColor,
+                    trailStyle: myTrailStyle
                 });
 
                 connectionStatus.className = "flex items-center gap-2 bg-emerald-950/40 border border-emerald-500/30 px-3 py-1.5 rounded-full text-xs text-emerald-400 font-semibold";
@@ -1694,9 +1746,6 @@
             else if (data.type === 'STATE_UPDATE') {
                 const oldPhase = gameState.gamePhase;
                 
-                // Keep references of positions before update for smooth linear interpolation (lerp)
-                const playersCopy = JSON.parse(JSON.stringify(gameState.players));
-
                 // Re-hydrate local state directly from host
                 gameState.players = data.state.players;
                 gameState.bullets = data.state.bullets;
@@ -1712,14 +1761,11 @@
                     const latest = gameState.players[pId];
                     if (!interpCache[pId]) {
                         interpCache[pId] = { x: latest.x, y: latest.y };
-                    } else if (pId !== myId) {
-                        // Update player coordinate checkpoints, but preserve existing interp slide positions
                     }
                 });
 
                 // Phase transitions
                 if (oldPhase !== 'PLAYING' && gameState.gamePhase === 'PLAYING') {
-                    // Sync our physics starting positions
                     const myServerP = gameState.players[myId];
                     if (myServerP) {
                         localPlayerState.x = myServerP.x;
@@ -1755,6 +1801,13 @@
             }
             else if (data.type === 'SCREEN_FLASH') {
                 triggerScreenFlash(data.color);
+            }
+            else if (data.type === 'MEDIA_STATE_CHANGE') {
+                // If another client toggled video and we have media streaming, initiate WebRTC connection
+                if (data.video && localMediaStream && !remoteVideoElements[data.playerId]) {
+                    const call = peer.call(data.playerId, localMediaStream);
+                    setupIncomingCallHandler(call);
+                }
             }
         }
 
@@ -1835,7 +1888,7 @@
         }
 
         function triggerRandomChaosEvent() {
-            const events = ['FART_ROCKETS', 'TINY_TERROR', 'SUPER_SPEED', 'BLACK_HOLE', 'GIANT_SIZE', 'BOUNCY_MADNESS'];
+            const events = ['FART_ROCKETS', 'TINY_TERROR', 'SUPER_SPEED', 'GIANT_SIZE', 'BOUNCY_MADNESS'];
             const chosen = events[Math.floor(Math.random() * events.length)];
             gameState.currentEvent = chosen;
             gameState.eventCountdown = parseInt(eventTimerSelect.value) || 15;
@@ -1972,17 +2025,6 @@
             pSelf.vx *= 0.92;
             pSelf.vy *= 0.92;
 
-            // Direct local gravity shift simulation for Black hole event
-            if (gameState.currentEvent === 'BLACK_HOLE') {
-                const dx = VIRTUAL_WIDTH / 2 - pSelf.x;
-                const dy = VIRTUAL_HEIGHT / 2 - pSelf.y;
-                const dist = Math.sqrt(dx * dx + dy * dy);
-                if (dist > 10) {
-                    pSelf.vx += (dx / dist) * 0.18;
-                    pSelf.vy += (dy / dist) * 0.18;
-                }
-            }
-
             pSelf.x += pSelf.vx;
             pSelf.y += pSelf.vy;
 
@@ -2071,16 +2113,6 @@
                 p.vy += ay;
                 p.vx *= 0.92;
                 p.vy *= 0.92;
-
-                if (gameState.currentEvent === 'BLACK_HOLE') {
-                    const dx = VIRTUAL_WIDTH / 2 - p.x;
-                    const dy = VIRTUAL_HEIGHT / 2 - p.y;
-                    const dist = Math.sqrt(dx * dx + dy * dy);
-                    if (dist > 10) {
-                        p.vx += (dx / dist) * 0.18;
-                        p.vy += (dy / dist) * 0.18;
-                    }
-                }
 
                 p.x += p.vx;
                 p.y += p.vy;
@@ -2297,12 +2329,20 @@
         }
 
         // Main 60fps local requestAnimationFrame canvas paint loop
+        let lastBroadcastTime = 0;
         function runMasterCanvasRenderLoop() {
             requestAnimationFrame(runMasterCanvasRenderLoop);
 
             if (gameState.gamePhase === 'PLAYING') {
                 if (isHost) {
                     updateAuthoritativePhysics();
+                    
+                    // Throttled high frequency WebRTC broadcast (25Hz) to ensure bullet and player sync
+                    const now = Date.now();
+                    if (now - lastBroadcastTime > 40) { 
+                        broadcastGameState();
+                        lastBroadcastTime = now;
+                    }
                 } else {
                     applyLocalClientPrediction();
                     sendClientInputUpdate();
@@ -2360,7 +2400,6 @@
                 ctx.translate(meme.x * scaleX, meme.y * scaleY);
                 ctx.rotate(meme.rotation);
                 ctx.globalAlpha = meme.alpha;
-                // Draw rounded meme layout
                 ctx.drawImage(
                     meme.img, 
                     -meme.size * 0.5 * scaleX, 
@@ -2428,13 +2467,10 @@
                     interpCache[p.id] = { x: p.x, y: p.y };
                 }
 
-                // If it is another player, smoothly interpolate their rendering coordinates 
-                // towards the absolute coordinate updates received from host
                 if (p.id !== myId) {
                     interpCache[p.id].x += (p.x - interpCache[p.id].x) * 0.35; // 35% lerp speed
                     interpCache[p.id].y += (p.y - interpCache[p.id].y) * 0.35;
                 } else {
-                    // For the local player, we already calculated the predicted coordinate instantly
                     interpCache[p.id].x = p.x;
                     interpCache[p.id].y = p.y;
                 }
@@ -2445,15 +2481,34 @@
                 ctx.save();
                 ctx.translate(renderX * scaleX, renderY * scaleY);
 
-                // Draw neon engine thruster tail trails if moving
+                // Draw customized neon engine thruster tail trails if moving
                 const isMoving = p.id === myId ? (Object.keys(localPlayerState.pressingKeys).length > 0) : (Object.keys(p.pressingKeys).length > 0);
                 if (isMoving) {
+                    ctx.save();
                     ctx.beginPath();
                     ctx.moveTo(-baseRad * scaleX, 0);
-                    ctx.lineTo((-baseRad - 12 - Math.random() * 8) * scaleX, (Math.random() - 0.5) * 10 * scaleY);
-                    ctx.strokeStyle = p.isBurstActive ? '#00f0ff' : '#ff007f';
+                    ctx.lineTo((-baseRad - 14 - Math.random() * 8) * scaleX, (Math.random() - 0.5) * 10 * scaleY);
+                    
+                    // Style-specific trail selectors
+                    const trail = p.trailStyle || 'plasma';
+                    if (trail === 'spark') {
+                        ctx.strokeStyle = '#FF9F00';
+                        ctx.shadowColor = '#FF9F00';
+                    } else if (trail === 'void') {
+                        ctx.strokeStyle = '#AE00FF';
+                        ctx.shadowColor = '#AE00FF';
+                    } else if (trail === 'matrix') {
+                        ctx.strokeStyle = '#39FF14';
+                        ctx.shadowColor = '#39FF14';
+                    } else { // plasma
+                        ctx.strokeStyle = p.isBurstActive ? '#00f0ff' : '#ff007f';
+                        ctx.shadowColor = p.isBurstActive ? '#00f0ff' : '#ff007f';
+                    }
+                    
                     ctx.lineWidth = 3;
+                    ctx.shadowBlur = 6;
                     ctx.stroke();
+                    ctx.restore();
                 }
 
                 ctx.rotate(p.angle);
@@ -2463,7 +2518,7 @@
                 const hasActiveVideo = vElement && vElement.readyState === vElement.HAVE_ENOUGH_DATA;
 
                 if (hasActiveVideo) {
-                    // Circular Crop Video Avatar directly on canvas!
+                    // Circular Crop Video Avatar directly on canvas
                     ctx.beginPath();
                     ctx.arc(0, 0, baseRad * scaleX, 0, Math.PI * 2);
                     ctx.clip();
@@ -2477,8 +2532,8 @@
                         baseRad * 2 * scaleY
                     );
                 } else {
-                    // Draw direct customizable central emoji
-                    ctx.fillStyle = 'rgba(15, 5, 30, 0.8)';
+                    // Draw standard avatar circular background
+                    ctx.fillStyle = 'rgba(15, 5, 30, 0.9)';
                     ctx.beginPath();
                     ctx.arc(0, 0, baseRad * scaleX, 0, Math.PI * 2);
                     ctx.fill();
