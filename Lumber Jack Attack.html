@@ -1,0 +1,2193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lumberjack Shootout: 2-Player Split Keyboard Duel</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mqtt/4.3.7/mqtt.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
+    <style>
+        body {
+            background-color: #0d0e15;
+            color: #f3f4f6;
+            font-family: 'VT323', monospace;
+            overflow: hidden;
+            user-select: none;
+        }
+        .arcade-font {
+            font-family: 'Press Start 2P', cursive;
+        }
+        .vt-font {
+            font-family: 'VT323', monospace;
+        }
+        /* Custom scrollbar just in case */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1f2937;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #ef4444;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body class="h-screen w-screen flex flex-col justify-between items-center p-3 relative select-none">
+
+    <!-- Game Header (Logo & Round Timer) -->
+    <header class="w-full max-w-5xl flex justify-between items-center bg-gray-900/90 border-4 border-red-600 rounded-xl px-6 py-2 shadow-2xl z-10">
+        <!-- P1 Brief Stats -->
+        <div class="flex items-center gap-4">
+            <div class="w-8 h-8 rounded bg-blue-500 border-2 border-white flex items-center justify-center text-xs arcade-font text-white shadow-lg">P1</div>
+            <div>
+                <div class="text-blue-400 arcade-font text-xs">BLUE LUMBER</div>
+                <div class="text-white text-xl">Score: <span id="p1-header-score" class="font-bold text-yellow-400">0</span></div>
+            </div>
+        </div>
+
+        <!-- Timer Area -->
+        <div class="text-center">
+            <div class="arcade-font text-xs text-red-500 uppercase tracking-widest">Round Timer</div>
+            <div id="round-timer" class="arcade-font text-3xl text-white font-bold animate-pulse mt-1">60</div>
+            <div id="round-number" class="text-gray-400 text-sm uppercase">Round 1</div>
+        </div>
+
+        <!-- P2 Brief Stats -->
+        <div class="flex items-center gap-4 flex-row-reverse text-right">
+            <div class="w-8 h-8 rounded bg-red-500 border-2 border-white flex items-center justify-center text-xs arcade-font text-white shadow-lg">P2</div>
+            <div>
+                <div class="text-red-400 arcade-font text-xs">RED CHOPPER</div>
+                <div class="text-white text-xl">Score: <span id="p2-header-score" class="font-bold text-yellow-400">0</span></div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Canvas Container & Play Field -->
+    <div class="relative flex-grow w-full max-w-5xl my-2 border-8 border-gray-800 bg-black rounded-2xl shadow-inner overflow-hidden flex items-center justify-center">
+        <div id="main-menu-overlay" class="absolute inset-0 bg-black/95 flex flex-col items-center justify-center p-6 z-40 transition-opacity duration-300">
+            <h1 class="arcade-font text-3xl md:text-4xl text-center text-yellow-400 mb-8 uppercase tracking-wider animate-bounce">
+                Lumberjack Duel
+            </h1>
+            <div class="flex flex-col gap-4 w-full max-w-md">
+                <button id="btn-local" class="arcade-font bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-sm py-4 px-8 rounded-xl border-4 border-white transition-transform active:scale-95 shadow-lg">
+                    PLAY LOCAL 2-PLAYER
+                </button>
+                <div class="border-t-2 border-gray-700 my-2"></div>
+                <button id="btn-host" class="arcade-font bg-green-600 hover:bg-green-500 text-white font-extrabold text-sm py-4 px-8 rounded-xl border-4 border-white transition-transform active:scale-95 shadow-lg">
+                    HOST ONLINE GAME
+                </button>
+                <div class="flex gap-2 w-full">
+                    <input id="join-code" type="text" placeholder="CODE" class="w-1/3 text-center arcade-font bg-gray-800 text-yellow-400 border-4 border-white rounded-xl uppercase text-lg" maxlength="4">
+                    <button id="btn-join" class="w-2/3 arcade-font bg-red-600 hover:bg-red-500 text-white font-extrabold text-sm py-4 px-8 rounded-xl border-4 border-white transition-transform active:scale-95 shadow-lg">
+                        JOIN GAME
+                    </button>
+                </div>
+                <div id="network-status" class="arcade-font text-xs text-center text-cyan-400 mt-4 h-6"></div>
+            </div>
+        </div>
+        
+        <canvas id="gameCanvas" class="w-full h-full block bg-[#141b24]"></canvas>
+
+        <!-- Instructions Overlay (Initially Visible, hides when game starts) -->
+        <div id="instructions-overlay" class="absolute inset-0 bg-black/90 flex flex-col items-center justify-center p-6 z-20 transition-opacity duration-300">
+            <h1 class="arcade-font text-2xl md:text-3xl text-center text-yellow-400 mb-2 uppercase tracking-wider animate-bounce">
+                Lumberjack Shootout
+            </h1>
+            <p class="text-gray-400 text-lg md:text-xl text-center mb-6 max-w-2xl">
+                Race to chop down trees to harvest ammo, health, and valuable points! Blast your rival back with explosive shotguns. No mouse controls!
+            </p>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-3xl mb-8">
+                <!-- P1 Box -->
+                <div class="bg-blue-950/60 border-2 border-blue-500 rounded-lg p-4 text-center">
+                    <h2 class="arcade-font text-sm text-blue-400 mb-3">Player 1 (Blue)</h2>
+                    <div class="grid grid-cols-2 gap-2 text-left text-lg">
+                        <div><strong class="text-white">Move Left/Right:</strong></div> <div class="text-blue-300 font-mono">A / D</div>
+                        <div><strong class="text-white">Jump:</strong></div> <div class="text-blue-300 font-mono">W</div>
+                        <div><strong class="text-white">Chop Tree:</strong></div> <div class="text-blue-300 font-mono">E</div>
+                        <div><strong class="text-white">Shoot Shotgun:</strong></div> <div class="text-blue-300 font-mono">S</div>
+                    </div>
+                </div>
+
+                <!-- P2 Box -->
+                <div class="bg-red-950/60 border-2 border-red-500 rounded-lg p-4 text-center">
+                    <h2 class="arcade-font text-sm text-red-400 mb-3">Player 2 (Red)</h2>
+                    <div class="grid grid-cols-2 gap-2 text-left text-lg">
+                        <div><strong class="text-white">Move Left/Right:</strong></div> <div class="text-red-300 font-mono">◀ / ▶</div>
+                        <div><strong class="text-white">Jump:</strong></div> <div class="text-red-300 font-mono">▲</div>
+                        <div><strong class="text-white">Chop Tree:</strong></div> <div class="text-red-300 font-mono">SHIFT</div>
+                        <div><strong class="text-white">Shoot Shotgun:</strong></div> <div class="text-red-300 font-mono">▼</div>
+                    </div>
+                </div>
+            </div>
+
+            <button id="start-btn" class="arcade-font bg-yellow-500 hover:bg-yellow-400 text-black font-extrabold text-sm md:text-md py-4 px-8 rounded-xl border-4 border-white transition-transform active:scale-95 shadow-lg shadow-yellow-500/30">
+                START DUEL!
+            </button>
+        </div>
+
+        <!-- Upgrade / Shop Overlay (Between Rounds) -->
+        <div id="shop-overlay" class="absolute inset-0 bg-gray-950/95 flex flex-col items-center justify-center p-6 z-20 hidden">
+            <h2 class="arcade-font text-2xl text-yellow-400 mb-1">INTERMISSION SHOP</h2>
+            <p class="text-gray-400 text-lg mb-4">Spend your hard-chopped player points to level up before the next round!</p>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-4xl overflow-y-auto max-h-[70vh] p-2">
+                <!-- Player 1 Shop Column -->
+                <div class="bg-blue-950/40 border-2 border-blue-500 rounded-xl p-4 flex flex-col justify-between">
+                    <div>
+                        <div class="flex justify-between items-center border-b border-blue-500/30 pb-2 mb-4">
+                            <h3 class="arcade-font text-xs text-blue-400">P1 Upgrades</h3>
+                            <span class="text-xl text-yellow-400">Points: <strong id="p1-shop-pts">0</strong></span>
+                        </div>
+                        <div class="space-y-3" id="p1-upgrades-list">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Player 2 Shop Column -->
+                <div class="bg-red-950/40 border-2 border-red-500 rounded-xl p-4 flex flex-col justify-between">
+                    <div>
+                        <div class="flex justify-between items-center border-b border-red-500/30 pb-2 mb-4">
+                            <h3 class="arcade-font text-xs text-red-400">P2 Upgrades</h3>
+                            <span class="text-xl text-yellow-400">Points: <strong id="p2-shop-pts">0</strong></span>
+                        </div>
+                        <div class="space-y-3" id="p2-upgrades-list">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <button id="next-round-btn" class="arcade-font mt-6 bg-green-500 hover:bg-green-400 text-black font-extrabold text-xs py-3 px-6 rounded-xl border-4 border-white transition-transform active:scale-95 shadow-lg">
+                READY FOR NEXT ROUND (5s)
+            </button>
+        </div>
+
+        <!-- Game Over Overlay -->
+        <div id="gameover-overlay" class="absolute inset-0 bg-black/95 flex flex-col items-center justify-center p-6 z-30 hidden">
+            <h2 class="arcade-font text-3xl text-red-500 mb-2 tracking-widest animate-pulse">MATCH OVER</h2>
+            
+            <div class="bg-gray-900 border-4 border-yellow-500 rounded-2xl p-6 my-4 w-full max-w-md text-center">
+                <div id="match-winner-banner" class="arcade-font text-lg text-yellow-400 mb-4">PLAYER 1 WINS THE DUEL!</div>
+                <div class="grid grid-cols-2 gap-4 text-xl border-t border-gray-700 pt-4">
+                    <div class="text-blue-400 font-bold">P1 Total: <span id="p1-final-score">0</span></div>
+                    <div class="text-red-400 font-bold">P2 Total: <span id="p2-final-score">0</span></div>
+                </div>
+            </div>
+
+            <button id="restart-game-btn" class="arcade-font mt-4 bg-yellow-500 hover:bg-yellow-400 text-black font-extrabold text-xs py-4 px-8 rounded-xl border-4 border-white transition-transform active:scale-95 shadow-lg">
+                PLAY AGAIN
+            </button>
+        </div>
+
+        <!-- Screen-space floating warning notices (e.g. "LOW HEALTH", "OUT OF AMMO") -->
+        <div id="game-notices" class="absolute top-4 left-1/2 -translate-x-1/2 z-15 flex flex-col gap-1 pointer-events-none text-center"></div>
+    </div>
+
+    <!-- Live Controls HUD & Resource Bars (Bottom of Screen) -->
+    <footer class="w-full max-w-5xl grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-900/90 border-4 border-gray-800 rounded-xl p-4 shadow-xl z-10">
+        <!-- P1 Dynamic Stats Panel -->
+        <div class="flex items-center gap-4 bg-blue-950/40 border-2 border-blue-600 rounded-lg p-2">
+            <div class="flex-grow">
+                <div class="flex justify-between mb-1 items-center">
+                    <span class="arcade-font text-xs text-blue-400">P1 Blue Lumber</span>
+                    <span class="text-xs text-gray-400">[W, A, S, D + E]</span>
+                </div>
+                <!-- Health Bar -->
+                <div class="w-full bg-gray-800 h-5 rounded-md border border-gray-600 overflow-hidden relative mb-1">
+                    <div id="p1-health-bar" class="h-full bg-gradient-to-r from-blue-600 to-cyan-400 transition-all duration-100" style="width: 100%;"></div>
+                    <span id="p1-health-txt" class="absolute inset-0 flex items-center justify-center font-bold text-xs text-white uppercase drop-shadow">HP: 100/100</span>
+                </div>
+                <!-- Ammo/Chop Power bar -->
+                <div class="grid grid-cols-2 gap-2 text-sm text-gray-200">
+                    <div class="flex items-center gap-1 bg-black/40 rounded px-2 py-0.5 border border-cyan-800">
+                        <span class="text-amber-500 font-extrabold text-base">🔫 Ammo:</span>
+                        <span id="p1-ammo-txt" class="font-bold text-yellow-400">6/6</span>
+                    </div>
+                    <div class="flex items-center gap-1 bg-black/40 rounded px-2 py-0.5 border border-cyan-800">
+                        <span class="text-emerald-400 font-extrabold text-base">🪓 Chop:</span>
+                        <span id="p1-chop-txt" class="font-bold text-emerald-400">100%</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- P2 Dynamic Stats Panel -->
+        <div class="flex items-center gap-4 bg-red-950/40 border-2 border-red-600 rounded-lg p-2">
+            <div class="flex-grow">
+                <div class="flex justify-between mb-1 items-center">
+                    <span class="arcade-font text-xs text-red-400">P2 Red Chop</span>
+                    <span class="text-xs text-gray-400">[Arrows + Shift]</span>
+                </div>
+                <!-- Health Bar -->
+                <div class="w-full bg-gray-800 h-5 rounded-md border border-gray-600 overflow-hidden relative mb-1">
+                    <div id="p2-health-bar" class="h-full bg-gradient-to-r from-red-600 to-amber-500 transition-all duration-100" style="width: 100%;"></div>
+                    <span id="p2-health-txt" class="absolute inset-0 flex items-center justify-center font-bold text-xs text-white uppercase drop-shadow">HP: 100/100</span>
+                </div>
+                <!-- Ammo/Chop Power bar -->
+                <div class="grid grid-cols-2 gap-2 text-sm text-gray-200">
+                    <div class="flex items-center gap-1 bg-black/40 rounded px-2 py-0.5 border border-amber-800">
+                        <span class="text-amber-500 font-extrabold text-base">🔫 Ammo:</span>
+                        <span id="p2-ammo-txt" class="font-bold text-yellow-400">6/6</span>
+                    </div>
+                    <div class="flex items-center gap-1 bg-black/40 rounded px-2 py-0.5 border border-amber-800">
+                        <span class="text-emerald-400 font-extrabold text-base">🪓 Chop:</span>
+                        <span id="p2-chop-txt" class="font-bold text-emerald-400">100%</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Audio Synthesis Engine for Retro Sound Effects (Pure Web Audio API, zero outside assets!) -->
+    <script>
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+        function playSound(type, fromNetwork = false) {
+            // Queue sound to broadcast to client
+            if (isOnline && isHost && !fromNetwork) {
+                pendingSounds.push(type);
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+            try {
+                const now = audioCtx.currentTime;
+                switch(type) {
+                    case 'jump':
+                        {
+                            let osc = audioCtx.createOscillator();
+                            let gain = audioCtx.createGain();
+                            osc.connect(gain);
+                            gain.connect(audioCtx.destination);
+                            osc.type = 'triangle';
+                            osc.frequency.setValueAtTime(150, now);
+                            osc.frequency.exponentialRampToValueAtTime(450, now + 0.15);
+                            gain.gain.setValueAtTime(0.2, now);
+                            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+                            osc.start(now);
+                            osc.stop(now + 0.15);
+                        }
+                        break;
+                    case 'chop':
+                        {
+                            let osc = audioCtx.createOscillator();
+                            let gain = audioCtx.createGain();
+                            osc.connect(gain);
+                            gain.connect(audioCtx.destination);
+                            osc.type = 'sawtooth';
+                            osc.frequency.setValueAtTime(220, now);
+                            osc.frequency.setValueAtTime(110, now + 0.05);
+                            gain.gain.setValueAtTime(0.3, now);
+                            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+                            osc.start(now);
+                            osc.stop(now + 0.1);
+                        }
+                        break;
+                    case 'shoot':
+                        {
+                            // White noise explosion for shotgun blast
+                            let bufferSize = audioCtx.sampleRate * 0.3;
+                            let buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+                            let data = buffer.getChannelData(0);
+                            for (let i = 0; i < bufferSize; i++) {
+                                data[i] = Math.random() * 2 - 1;
+                            }
+                            let noiseNode = audioCtx.createBufferSource();
+                            noiseNode.buffer = buffer;
+
+                            let filter = audioCtx.createBiquadFilter();
+                            filter.type = 'lowpass';
+                            filter.frequency.setValueAtTime(1000, now);
+                            filter.frequency.exponentialRampToValueAtTime(100, now + 0.3);
+
+                            let gain = audioCtx.createGain();
+                            gain.gain.setValueAtTime(0.4, now);
+                            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+
+                            noiseNode.connect(filter);
+                            filter.connect(gain);
+                            gain.connect(audioCtx.destination);
+
+                            noiseNode.start(now);
+                        }
+                        break;
+                    case 'hit':
+                        {
+                            let osc = audioCtx.createOscillator();
+                            let gain = audioCtx.createGain();
+                            osc.connect(gain);
+                            gain.connect(audioCtx.destination);
+                            osc.type = 'sawtooth';
+                            osc.frequency.setValueAtTime(180, now);
+                            osc.frequency.linearRampToValueAtTime(60, now + 0.12);
+                            gain.gain.setValueAtTime(0.25, now);
+                            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+                            osc.start(now);
+                            osc.stop(now + 0.15);
+                        }
+                        break;
+                    case 'pickup':
+                        {
+                            let osc = audioCtx.createOscillator();
+                            let gain = audioCtx.createGain();
+                            osc.connect(gain);
+                            gain.connect(audioCtx.destination);
+                            osc.type = 'sine';
+                            osc.frequency.setValueAtTime(300, now);
+                            osc.frequency.setValueAtTime(450, now + 0.08);
+                            osc.frequency.setValueAtTime(600, now + 0.15);
+                            gain.gain.setValueAtTime(0.2, now);
+                            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+                            osc.start(now);
+                            osc.stop(now + 0.25);
+                        }
+                        break;
+                    case 'woodfall':
+                        {
+                            let osc = audioCtx.createOscillator();
+                            let gain = audioCtx.createGain();
+                            osc.connect(gain);
+                            gain.connect(audioCtx.destination);
+                            osc.type = 'sawtooth';
+                            osc.frequency.setValueAtTime(120, now);
+                            osc.frequency.linearRampToValueAtTime(40, now + 0.4);
+                            gain.gain.setValueAtTime(0.2, now);
+                            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+                            osc.start(now);
+                            osc.stop(now + 0.4);
+                        }
+                        break;
+                    case 'gameover':
+                        {
+                            let osc = audioCtx.createOscillator();
+                            let gain = audioCtx.createGain();
+                            osc.connect(gain);
+                            gain.connect(audioCtx.destination);
+                            osc.type = 'triangle';
+                            osc.frequency.setValueAtTime(300, now);
+                            osc.frequency.linearRampToValueAtTime(150, now + 0.5);
+                            gain.gain.setValueAtTime(0.3, now);
+                            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.8);
+                            osc.start(now);
+                            osc.stop(now + 0.8);
+                        }
+                        break;
+                }
+            } catch (e) {
+                console.log("Audio node could not be played:", e);
+            }
+        }
+    </script>
+
+    <!-- Main Game Script -->
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Match parameters & dynamic states
+        let roundTimeMax = 60; 
+        let currentRound = 1;
+        let maxRounds = 5; // UPDATED to 5 rounds by default
+        let roundTimeRemaining = roundTimeMax;
+        let gameTimerInterval = null;
+        let shopTimerInterval = null;
+        let activeGameState = 'menu'; // Start at 'menu'
+
+        // Network Globals
+        let isOnline = false;
+        let isHost = false;
+        let myPlayerId = 1; 
+        let roomCode = "";
+        let mqttClient = null;
+        let frameCount = 0;
+        
+        let p2RemoteInputs = { left: false, right: false, shoot: false, chop: false, jump: false };
+        let p2LastRemoteInputs = { left: false, right: false, shoot: false, chop: false, jump: false };
+        let pendingSounds = [];
+        let p1Ready = false;
+        let p2Ready = false;
+        let shopCounter = 45;
+
+        // Screen Shake Controller
+        let screenShakeAmount = 0;
+
+        // Level Design Platforms
+        let platforms = [];
+
+        // Players definitions
+        const initialPlayerState = (id) => ({
+            id: id,
+            x: id === 1 ? 150 : 850,
+            y: 400,
+            vx: 0,
+            vy: 0,
+            width: 32,
+            height: 48,
+            facingRight: id === 1,
+            color: id === 1 ? '#3b82f6' : '#ef4444',
+            
+            // Core stats
+            hp: 100,
+            maxHp: 100,
+            ammo: 6,
+            maxAmmo: 6,
+            points: 0,
+            totalPoints: 0, // Cumulative across match
+
+            // Upgrade levels (purchased at shop)
+            upgrades: {
+                maxHp: 0,       // +20 HP per tier
+                chopSpeed: 0,   // Reduce chop cooldown
+                bulletSpeed: 0, // Faster pellets
+                spreadControl: 0, // More controlled tight pellet focus
+                doubleJump: 0,  // Enable 1 extra jump in midair
+                regen: 0,        // Regens 1 HP every 3 seconds
+                machineGun: 0, kevlar: 0, piercing: 0
+            },
+
+            // Double jump trackers
+            jumpsUsed: 0,
+            onGround: false,
+
+            // Timers & states
+            chopCooldown: 0,
+            shootCooldown: 0,
+            invulnFrames: 0, // Flash when hit
+            isChopping: false,
+            chopAnimTimer: 0,
+            isDead: false,
+            respawnTimer: 0
+        });
+
+        let p1 = initialPlayerState(1);
+        let p2 = initialPlayerState(2);
+
+        // Input state monitoring
+        const keys = {};
+
+        // Active environment elements
+        let trees = [];
+        let bullets = [];
+        let particles = [];
+        let dropItems = [];
+
+        // Constants & Physics config
+        const GRAVITY = 0.5;
+        const TERMINAL_VELOCITY = 15;
+        const FRICTION = 0.85;
+        const RUN_ACCEL = 0.8;
+        const JUMP_FORCE = -13;
+
+        // Upgrade configurations & prices
+        const upgradeSpecs = {
+            maxHp: { name: "Thick Skin (+25 HP)", basePrice: 45, max: 4, desc: "Increases survivability max HP" },
+            chopSpeed: { name: "Alloy Axe (-20% Cooldown)", basePrice: 30, max: 4, desc: "Chop trees much faster" },
+            bulletSpeed: { name: "High Powder (+30% Bullet Speed)", basePrice: 36, max: 4, desc: "Harder to dodge shotgun spreads" },
+            spreadControl: { name: "Choke Barrel (+2 extra pellets)", basePrice: 45, max: 4, desc: "Increases number of shotgun pellets" },
+            doubleJump: { name: "Pneumatic Boots (Double Jump)", basePrice: 60, max: 1, desc: "Allows jumping once in mid-air" },
+            regen: { name: "Vampiric Sap (HP Regen)", basePrice: 75, max: 3, desc: "Regenerate health over time" },
+            machineGun: { name: "Gatling Mod (Auto-Fire)", basePrice: 130, max: 1, desc: "Hold to fire rapidly. 0 ammo cost, lower damage." },
+            kevlar: { name: "Flannel Kevlar (-Armor)", basePrice: 60, max: 3, desc: "Reduces incoming bullet damage per hit." },
+            piercing: { name: "Tungsten Rounds (Pierce)", basePrice: 300, max: 1, desc: "Bullets pass cleanly through trees." }
+        };
+
+        // Setup MQTT and UI binding
+        function showInstructions() {
+            document.getElementById('main-menu-overlay').classList.add('hidden');
+            document.getElementById('instructions-overlay').classList.remove('hidden');
+        }
+
+        document.getElementById('btn-local').addEventListener('click', () => {
+            isOnline = false;
+            showInstructions();
+        });
+
+        function connectMQTT(onSuccess) {
+            const status = document.getElementById('network-status');
+            status.innerText = "CONNECTING TO BROKER...";
+            // Using a public websocket broker for HTML5 apps
+            mqttClient = mqtt.connect('wss://broker.hivemq.com:8884/mqtt');
+            
+            mqttClient.on('connect', () => onSuccess(status));
+            mqttClient.on('message', handleNetworkData);
+        }
+
+        document.getElementById('btn-host').addEventListener('click', () => {
+            connectMQTT((status) => {
+                isOnline = true; isHost = true; myPlayerId = 1;
+                roomCode = Math.floor(1000 + Math.random() * 9000).toString();
+                status.innerText = `ROOM: ${roomCode} - WAITING FOR P2...`;
+                mqttClient.subscribe(`lumberjack/${roomCode}/client`);
+                mqttClient.subscribe(`lumberjack/${roomCode}/shop`);
+            });
+        });
+
+        document.getElementById('btn-join').addEventListener('click', () => {
+            const code = document.getElementById('join-code').value.trim();
+            if(code.length !== 4) return;
+            connectMQTT((status) => {
+                isOnline = true; isHost = false; myPlayerId = 2; roomCode = code;
+                mqttClient.subscribe(`lumberjack/${roomCode}/host`);
+                mqttClient.subscribe(`lumberjack/${roomCode}/shop`);
+                mqttClient.publish(`lumberjack/${roomCode}/client`, JSON.stringify({ type: 'join' }));
+                showInstructions();
+            });
+        });
+
+        function handleNetworkData(topic, message) {
+            const data = JSON.parse(message.toString());
+            
+            if (topic.endsWith('/shop')) {
+                if (data.type === 'ready' && !isHost) {
+                    p1Ready = true;
+                    checkShopReady();
+                    return;
+                }
+                window.buyUpgrade(data.playerId, data.upgradeKey, data.price, true);
+                return;
+            }
+
+            if (isHost && topic.endsWith('/client')) {
+                if (data.type === 'join') showInstructions();
+                if (data.inputs) {
+                    p2RemoteInputs = data.inputs;
+                }
+                if (data.type === 'ready') {
+                    p2Ready = true;
+                    checkShopReady();
+                }
+            } else if (!isHost && topic.endsWith('/host')) {
+                // Client receives absolute authoritative state from Host
+                if (data.p1) Object.assign(p1, data.p1);
+                if (data.p2) Object.assign(p2, data.p2);
+                
+                if (data.trees) {
+                    data.trees.forEach((tData, i) => {
+                        if(trees[i]) Object.assign(trees[i], tData);
+                    });
+                }
+                
+                if (data.bullets) bullets = data.bullets;
+                if (data.drops) dropItems = data.drops;
+                if (data.sounds) data.sounds.forEach(s => playSound(s, true));
+                if (data.particles) particles = data.particles;
+                
+                if (data.roundTimeRemaining !== undefined) roundTimeRemaining = data.roundTimeRemaining;
+                if (data.activeGameState) activeGameState = data.activeGameState;
+                if (data.currentRound) currentRound = data.currentRound;
+            }
+        }
+
+        function networkSyncTick() {
+            if (!isOnline) return;
+            
+            if (isHost) {
+                const treeData = trees.map(t => ({ health: t.health, state: t.state, growth: t.growth, stumpTimer: t.stumpTimer }));
+                
+                // Broadcast every frame and sync particles with { qos: 0 } for lowest latency
+                mqttClient.publish(`lumberjack/${roomCode}/host`, JSON.stringify({
+                    p1: p1,
+                    p2: p2,
+                    trees: treeData,
+                    bullets: bullets,
+                    drops: dropItems,
+                    sounds: pendingSounds,
+                    particles: particles, // <-- ADD THIS
+                    roundTimeRemaining: roundTimeRemaining,
+                    activeGameState: activeGameState,
+                    currentRound: currentRound
+                }), { qos: 0 }); 
+                pendingSounds = []; 
+            } else {
+                mqttClient.publish(`lumberjack/${roomCode}/client`, JSON.stringify({
+                    inputs: {
+                        left: keys['a'] || keys['A'] || keys['ArrowLeft'] || false,
+                        right: keys['d'] || keys['D'] || keys['ArrowRight'] || false,
+                        shoot: keys['s'] || keys['S'] || keys['ArrowDown'] || false,
+                        chop: keys['e'] || keys['E'] || keys['Shift'] || keys['shift'] || false,
+                        jump: keys['w'] || keys['W'] || keys['ArrowUp'] || false
+                    }
+                }), { qos: 0 }); // <-- ADD { qos: 0 }
+            }
+        }
+
+        // Window load and resize handlers
+        window.addEventListener('resize', resizeCanvas);
+        function resizeCanvas() {
+            // Keep game internal resolution native standard ratio for pixel accuracy
+            canvas.width = 1000;
+            canvas.height = 600;
+        }
+        resizeCanvas();
+
+        // Keyboard bindings
+        window.addEventListener('keydown', (e) => {
+            const key = e.key.toLowerCase();
+            keys[e.key] = true; keys[key] = true;
+            if(["arrowup","arrowdown","arrowleft","arrowright","shift"," "].indexOf(key) > -1) e.preventDefault();
+
+            if (activeGameState === 'playing') {
+                const jumpKey = isOnline ? (key === 'w' || e.key === 'ArrowUp') : (key === 'w');
+                const shootKey = isOnline ? (key === 's' || e.key === 'ArrowDown') : (key === 's');
+
+                // Host or Local P1 instant actions
+                if ((!isOnline || myPlayerId === 1) && jumpKey) attemptJump(p1);
+                if ((!isOnline || myPlayerId === 1) && shootKey && p1.upgrades.machineGun === 0 && p1.shootCooldown === 0) fireWeapon(p1, false);
+
+                // Local P2 instant actions (Only triggers if playing offline)
+                if (!isOnline && e.key === 'ArrowUp') attemptJump(p2);
+                if (!isOnline && e.key === 'ArrowDown' && p2.upgrades.machineGun === 0 && p2.shootCooldown === 0) fireWeapon(p2, false);
+            }
+        });
+
+        window.addEventListener('keyup', (e) => {
+            keys[e.key] = false;
+            keys[e.key.toLowerCase()] = false;
+        });
+
+        function attemptJump(p) {
+            if (p.isDead) return;
+            const maxJumpsAllowed = p.upgrades.doubleJump > 0 ? 2 : 1;
+            
+            if (p.onGround) {
+                p.vy = JUMP_FORCE;
+                p.onGround = false;
+                p.jumpsUsed = 1;
+                playSound('jump');
+                spawnJumpDust(p.x + p.width/2, p.y + p.height);
+            } else if (p.jumpsUsed < maxJumpsAllowed) {
+                p.vy = JUMP_FORCE * 0.95; // Slightly weaker second jump
+                p.jumpsUsed++;
+                playSound('jump');
+                spawnJumpDust(p.x + p.width/2, p.y + p.height);
+            }
+        }
+
+        // Initialize Level Map Boundaries and Platforms
+        function buildLevel() {
+            platforms = [
+                // Floor base
+                { x: 0, y: 560, w: 1000, h: 40, isFloor: true },
+                
+                // Left Mid platform
+                { x: 80, y: 400, w: 220, h: 16, isFloor: false },
+                // Right Mid platform
+                { x: 700, y: 400, w: 220, h: 16, isFloor: false },
+                
+                // Center Upper platform
+                { x: 350, y: 280, w: 300, h: 16, isFloor: false },
+
+                // Floating small pockets
+                { x: 180, y: 180, w: 140, h: 16, isFloor: false },
+                { x: 680, y: 180, w: 140, h: 16, isFloor: false }
+            ];
+        }
+
+        // Generate dynamic trees in strategic spots
+        function spawnInitialTrees() {
+            trees = [];
+            // Spawn sites are associated with platforms to stand nearby to chop
+            const spawnSpots = [
+                { x: 150, platformY: 400 },
+                { x: 850, platformY: 400 },
+                { x: 500, platformY: 280 },
+                { x: 250, platformY: 180 },
+                { x: 750, platformY: 180 },
+                { x: 300, platformY: 560 },
+                { x: 700, platformY: 560 },
+                { x: 500, platformY: 560 }
+            ];
+
+            spawnSpots.forEach((spot, index) => {
+                trees.push(createNewTree(spot.x, spot.platformY, index));
+            });
+        }
+
+        function createNewTree(x, platformY, id) {
+            return {
+                id: id,
+                x: x,
+                y: platformY, // Bottom trunk point
+                maxHealth: 200, // Doubled
+                health: 200, // Doubled
+                growth: 1.0, // Scale 0.0 to 1.0
+                growthTimer: 0,
+                state: 'healthy', // 'healthy', 'stump', 'growing'
+                width: 24,
+                height: 110,
+                canBeChopped: true,
+                stumpTimer: 0
+            };
+        }
+
+        // Trigger start duel
+        document.getElementById('start-btn').addEventListener('click', () => {
+            document.getElementById('instructions-overlay').classList.add('opacity-0');
+            setTimeout(() => {
+                document.getElementById('instructions-overlay').classList.add('hidden');
+                startGame();
+            }, 300);
+        });
+
+        // Shop button setup
+        document.getElementById('next-round-btn').addEventListener('click', () => {
+            if (isOnline) {
+                if (isHost) {
+                    p1Ready = true;
+                    mqttClient.publish(`lumberjack/${roomCode}/shop`, JSON.stringify({ type: 'ready', playerId: 1 }));
+                } else {
+                    p2Ready = true;
+                    mqttClient.publish(`lumberjack/${roomCode}/client`, JSON.stringify({ type: 'ready', playerId: 2 }));
+                }
+                checkShopReady();
+            } else {
+                endShopPhase(); // Local play advances instantly
+            }
+        });
+
+        // Play again setup
+        document.getElementById('restart-game-btn').addEventListener('click', () => {
+            document.getElementById('gameover-overlay').classList.add('hidden');
+            currentRound = 1;
+            p1 = initialPlayerState(1);
+            p2 = initialPlayerState(2);
+            startGame();
+        });
+
+        function startGame() {
+            activeGameState = 'playing';
+            roundTimeRemaining = roundTimeMax;
+            buildLevel();
+            spawnInitialTrees();
+            bullets = [];
+            particles = [];
+            dropItems = [];
+
+            // Reset round indicators
+            document.getElementById('round-number').innerText = `Round ${currentRound}`;
+            document.getElementById('round-timer').innerText = roundTimeRemaining;
+
+            // Reset round positions but keep permanent upgrades
+            resetPlayerRoundStart(p1, 1);
+            resetPlayerRoundStart(p2, 2);
+
+            // Re-sync visual HUD
+            syncHUD();
+
+            // Clear any old loops
+            clearInterval(gameTimerInterval);
+            clearInterval(shopTimerInterval);
+
+            // Start clock
+            gameTimerInterval = setInterval(() => {
+                if (activeGameState === 'playing') {
+                    roundTimeRemaining--;
+                    document.getElementById('round-timer').innerText = roundTimeRemaining;
+
+                    // Apply passive upgrade healing
+                    applyPassiveRegen(p1);
+                    applyPassiveRegen(p2);
+
+                    if (roundTimeRemaining <= 0) {
+                        endCurrentRound();
+                    }
+                }
+            }, 1000);
+
+            // Trigger game loop execution
+            requestAnimationFrame(gameLoop);
+        }
+
+        function resetPlayerRoundStart(p, sideId) {
+            p.x = sideId === 1 ? 120 : 880;
+            p.y = 100; // Drop from sky for coolness
+            p.vx = 0;
+            p.vy = 0;
+            p.hp = p.maxHp;
+            p.ammo = p.maxAmmo;
+            p.isDead = false;
+            p.respawnTimer = 0;
+            p.jumpsUsed = 0;
+            p.onGround = false;
+        }
+
+        function applyPassiveRegen(p) {
+            if (p.isDead) return;
+            if (p.upgrades.regen > 0) {
+                const healAmt = p.upgrades.regen;
+                p.hp = Math.min(p.maxHp + (p.upgrades.maxHp * 25), p.hp + healAmt);
+                // Green dust heal particles
+                for (let i = 0; i < 3; i++) {
+                    particles.push({
+                        x: p.x + Math.random() * p.width,
+                        y: p.y + Math.random() * p.height,
+                        vx: (Math.random() - 0.5) * 1,
+                        vy: -Math.random() * 1.5,
+                        size: Math.random() * 3 + 2,
+                        color: '#10b981',
+                        life: 30,
+                        maxLife: 30
+                    });
+                }
+            }
+        }
+
+        // Round Termination Check
+        function endCurrentRound() {
+            clearInterval(gameTimerInterval);
+            activeGameState = 'shop';
+            
+            // award bonus points to whoever had more HP at the buzzer
+            if (p1.hp > p2.hp && !p1.isDead) {
+                p1.points += 15;
+                p1.totalPoints += 15;
+                showNotice("P1 bonus for higher HP!", '#3b82f6');
+            } else if (p2.hp > p1.hp && !p2.isDead) {
+                p2.points += 15;
+                p2.totalPoints += 15;
+                showNotice("P2 bonus for higher HP!", '#ef4444');
+            }
+
+            if (currentRound >= maxRounds) {
+                triggerGameOver();
+            } else {
+                openShopPhase();
+            }
+        }
+
+        function openShopPhase() {
+            document.getElementById('shop-overlay').classList.remove('hidden');
+            
+            document.getElementById('p1-shop-pts').innerText = p1.points;
+            document.getElementById('p2-shop-pts').innerText = p2.points;
+        
+            renderUpgradesList(p1, 'p1');
+            renderUpgradesList(p2, 'p2');
+        
+            p1Ready = false;
+            p2Ready = false;
+            shopCounter = 45;
+            updateReadyButtonText();
+        
+            shopTimerInterval = setInterval(() => {
+                shopCounter--;
+                updateReadyButtonText();
+                if (shopCounter <= 0) {
+                    endShopPhase();
+                }
+            }, 1000);
+        }
+        
+        function updateReadyButtonText() {
+            let baseText = "READY FOR NEXT ROUND";
+            if (isOnline) {
+                if (isHost && p1Ready && !p2Ready) baseText = "WAITING FOR P2";
+                if (!isHost && p2Ready && !p1Ready) baseText = "WAITING FOR HOST";
+            }
+            document.getElementById('next-round-btn').innerText = `${baseText} (${shopCounter}s)`;
+        }
+        
+        window.checkShopReady = function() {
+            if (p1Ready && p2Ready) {
+                endShopPhase();
+            } else {
+                updateReadyButtonText();
+            }
+        };
+
+        function renderUpgradesList(player, prefix) {
+            const listEl = document.getElementById(`${prefix}-upgrades-list`);
+            listEl.innerHTML = '';
+            
+            // Lock out shop buttons if playing online and viewing the other player's shop
+            const isRemotePlayerView = isOnline && player.id !== myPlayerId;
+
+            Object.keys(upgradeSpecs).forEach(key => {
+                const spec = upgradeSpecs[key];
+                const currentTier = player.upgrades[key];
+                const price = spec.basePrice + (currentTier * (spec.basePrice / 2)) + (currentTier ^ 2);
+                const isMax = currentTier >= spec.max;
+
+                const itemDiv = document.createElement('div');
+                itemDiv.className = `flex flex-col p-2.5 rounded-lg border bg-gray-900 ${isMax ? 'border-gray-800' : 'border-gray-700'} hover:border-yellow-500/50 transition-colors`;
+                
+                let actionBtnHTML = '';
+                if (isMax) {
+                    actionBtnHTML = `<span class="text-xs text-green-500 font-bold uppercase py-1 px-3 bg-green-950/40 rounded border border-green-500/30">MAXED</span>`;
+                } else if (isRemotePlayerView) {
+                    actionBtnHTML = `<span class="text-xs text-gray-500 font-bold uppercase py-1 px-3 border border-gray-700 rounded">P${player.id} UPGRADE</span>`;
+                } else {
+                    const canAfford = player.points >= price;
+                    actionBtnHTML = `
+                        <button onclick="buyUpgrade(${player.id}, '${key}', ${price})" 
+                                class="text-xs font-extrabold py-1.5 px-3 rounded-md transition-all uppercase border-2 
+                                ${canAfford 
+                                    ? 'bg-yellow-500 border-white text-black hover:bg-yellow-400 active:scale-95' 
+                                    : 'bg-gray-800 border-gray-600 text-gray-400 cursor-not-allowed'}"
+                                ${!canAfford ? 'disabled' : ''}>
+                            BUY pts ${price}
+                        </button>
+                    `;
+                }
+
+                itemDiv.innerHTML = `
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <h4 class="font-bold text-gray-100 text-base flex items-center gap-2">
+                                ${spec.name} <span class="text-xs text-yellow-500 font-mono">[Lvl ${currentTier}/${spec.max}]</span>
+                            </h4>
+                            <p class="text-xs text-gray-400">${spec.desc}</p>
+                        </div>
+                        <div>${actionBtnHTML}</div>
+                    </div>
+                `;
+                listEl.appendChild(itemDiv);
+            });
+        }
+
+        window.buyUpgrade = function(playerId, upgradeKey, price, fromNetwork = false) {
+            const targetPlayer = playerId === 1 ? p1 : p2;
+            const spec = upgradeSpecs[upgradeKey];
+            
+            if (targetPlayer.points >= price && targetPlayer.upgrades[upgradeKey] < spec.max) {
+                targetPlayer.points -= price;
+                targetPlayer.upgrades[upgradeKey]++;
+                
+                if (upgradeKey === 'maxHp') {
+                    targetPlayer.maxHp = 100 + (targetPlayer.upgrades.maxHp * 25);
+                    targetPlayer.hp += 25; 
+                }
+
+                playSound('pickup');
+
+                // Broadcast purchase to remote client
+                if (isOnline && !fromNetwork) {
+                    mqttClient.publish(`lumberjack/${roomCode}/shop`, JSON.stringify({ playerId, upgradeKey, price }));
+                }
+
+                document.getElementById('p1-shop-pts').innerText = p1.points;
+                document.getElementById('p2-shop-pts').innerText = p2.points;
+                renderUpgradesList(p1, 'p1'); renderUpgradesList(p2, 'p2');
+                syncHUD();
+            }
+        };
+
+        function endShopPhase() {
+            clearInterval(shopTimerInterval);
+            document.getElementById('shop-overlay').classList.add('hidden');
+            currentRound++;
+            startGame();
+        }
+
+        function triggerGameOver() {
+            activeGameState = 'gameover';
+            clearInterval(gameTimerInterval);
+            playSound('gameover');
+
+            // Hide normal HUD indicators
+            document.getElementById('gameover-overlay').classList.remove('hidden');
+
+            const p1Total = p1.totalPoints + p1.points;
+            const p2Total = p2.totalPoints + p2.points;
+
+            document.getElementById('p1-final-score').innerText = p1Total;
+            document.getElementById('p2-final-score').innerText = p2Total;
+
+            const banner = document.getElementById('match-winner-banner');
+            if (p1Total > p2Total) {
+                banner.innerText = "PLAYER 1 (BLUE) WINS THE DUEL!";
+                banner.className = "arcade-font text-xl text-blue-400 animate-pulse";
+            } else if (p2Total > p1Total) {
+                banner.innerText = "PLAYER 2 (RED) WINS THE DUEL!";
+                banner.className = "arcade-font text-xl text-red-400 animate-pulse";
+            } else {
+                banner.innerText = "IT'S AN INCREDIBLE TIE DUEL!";
+                banner.className = "arcade-font text-xl text-yellow-400 animate-pulse";
+            }
+        }
+
+        // Show critical warnings across the middle
+        function showNotice(text, color) {
+            const container = document.getElementById('game-notices');
+            const notice = document.createElement('div');
+            notice.className = 'arcade-font text-xs p-2 rounded-md bg-black/80 border border-gray-700 animate-bounce tracking-wide whitespace-nowrap shadow-lg';
+            notice.style.color = color;
+            notice.innerText = text;
+            container.appendChild(notice);
+            setTimeout(() => {
+                notice.remove();
+            }, 2500);
+        }
+
+        // Sync local DOM UI bars
+        function syncHUD() {
+            // Player 1
+            const p1MaxHp = p1.maxHp;
+            const p1Percent = Math.max(0, (p1.hp / p1MaxHp) * 100);
+            document.getElementById('p1-health-bar').style.width = `${p1Percent}%`;
+            document.getElementById('p1-health-txt').innerText = `HP: ${Math.round(p1.hp)}/${p1MaxHp}`;
+            document.getElementById('p1-ammo-txt').innerText = `${p1.ammo}/${p1.maxAmmo}`;
+            
+            const p1ChopPct = p1.chopCooldown > 0 ? Math.round((1 - p1.chopCooldown / getChopCooldownMax(p1)) * 100) : 100;
+            document.getElementById('p1-chop-txt').innerText = `${p1ChopPct}%`;
+            document.getElementById('p1-header-score').innerText = p1.points;
+
+            // Player 2
+            const p2MaxHp = p2.maxHp;
+            const p2Percent = Math.max(0, (p2.hp / p2MaxHp) * 100);
+            document.getElementById('p2-health-bar').style.width = `${p2Percent}%`;
+            document.getElementById('p2-health-txt').innerText = `HP: ${Math.round(p2.hp)}/${p2MaxHp}`;
+            document.getElementById('p2-ammo-txt').innerText = `${p2.ammo}/${p2.maxAmmo}`;
+
+            const p2ChopPct = p2.chopCooldown > 0 ? Math.round((1 - p2.chopCooldown / getChopCooldownMax(p2)) * 100) : 100;
+            document.getElementById('p2-chop-txt').innerText = `${p2ChopPct}%`;
+            document.getElementById('p2-header-score').innerText = p2.points;
+        }
+
+        function getChopCooldownMax(p) {
+            // base chop cooldown is 30 frames. Reduced by 4 frames per upgrade tier.
+            return Math.max(10, 30 - (p.upgrades.chopSpeed * 4));
+        }
+
+        // Game Loop Update/Draw cycle
+        // --- PERFORMANCE FIX: TIME-STEP ACCUMULATOR ---
+        let lastTime = 0;
+        let accumulator = 0;
+        const TIMESTEP = 1000 / 60; // Target 60 updates per second (~16.67ms per step)
+
+        // Game Loop Update/Draw cycle decoupled from browser frame-rate limits
+        function gameLoop(timestamp) {
+            // If the game isn't actively playing, halt the loop and reset timers
+            if (activeGameState !== 'playing') {
+                lastTime = 0;
+                accumulator = 0;
+                return;
+            }
+
+            // Initialize lastTime on the very first frame of a round
+            if (!lastTime) {
+                lastTime = timestamp;
+            }
+
+            // Measure how much real-world time (in milliseconds) has passed since the last frame
+            let elapsed = timestamp - lastTime;
+            lastTime = timestamp;
+
+            // "Spiral of Death" Protection: Capping elapsed time prevents the game from 
+            // freezing up if the browser tab is backgrounded or experiences a massive lag spike.
+            if (elapsed > 100) {
+                elapsed = 100;
+            }
+
+            accumulator += elapsed;
+
+            // Run as many fixed 60 FPS physics updates as necessary to catch up to real-world time
+            while (accumulator >= TIMESTEP) {
+                update();
+                accumulator -= TIMESTEP;
+            }
+
+            // Render the screen exactly once per animation frame
+            draw();
+
+            // Loop smoothly using the native browser frame request
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Particle Generators
+        function spawnAxeChips(x, y, color) {
+            for (let i = 0; i < 12; i++) {
+                particles.push({
+                    x: x,
+                    y: y,
+                    vx: (Math.random() - 0.5) * 6,
+                    vy: (Math.random() - 0.8) * 6,
+                    size: Math.random() * 5 + 3,
+                    color: color || '#854d0e', // brown wood by default
+                    life: 40,
+                    maxLife: 40,
+                    gravity: 0.25,
+                    rotation: Math.random() * Math.PI * 2,
+                    rotVel: (Math.random() - 0.5) * 0.2
+                });
+            }
+        }
+
+        function spawnBloodSpurt(x, y) {
+            for (let i = 0; i < 8; i++) {
+                particles.push({
+                    x: x,
+                    y: y,
+                    vx: (Math.random() - 0.5) * 4,
+                    vy: (Math.random() - 0.7) * 4,
+                    size: Math.random() * 4 + 2,
+                    color: '#dc2626', // Deep red
+                    life: 25,
+                    maxLife: 25,
+                    gravity: 0.2
+                });
+            }
+        }
+
+        function spawnJumpDust(x, y) {
+            for (let i = 0; i < 6; i++) {
+                particles.push({
+                    x: x,
+                    y: y - 2,
+                    vx: (Math.random() - 0.5) * 3,
+                    vy: (Math.random() - 0.2) * -1,
+                    size: Math.random() * 6 + 3,
+                    color: 'rgba(156, 163, 175, 0.4)', // gray dust
+                    life: 20,
+                    maxLife: 20
+                });
+            }
+        }
+
+        function spawnExplosion(x, y) {
+            // Flash particles for shotgun impact or muzzle blast
+            for (let i = 0; i < 15; i++) {
+                particles.push({
+                    x: x,
+                    y: y,
+                    vx: (Math.random() - 0.5) * 8,
+                    vy: (Math.random() - 0.5) * 8,
+                    size: Math.random() * 6 + 4,
+                    color: ['#f59e0b', '#ef4444', '#facc15', '#ffffff'][Math.floor(Math.random() * 4)],
+                    life: 20,
+                    maxLife: 20,
+                    gravity: -0.05
+                });
+            }
+        }
+
+        // Logic Update Engine
+        function update() {
+            // Apply Screen Shake Decay (Visual effect runs on both clients)
+            if (screenShakeAmount > 0) {
+                screenShakeAmount *= 0.9;
+                if (screenShakeAmount < 0.1) screenShakeAmount = 0;
+            }
+
+            // Only Host (or offline local) runs the authoritative game rules
+            if (!isOnline || isHost) {
+                
+                // Catch client remote tap inputs (jumps/shotgun blasts)
+                if (isOnline && isHost) {
+                    if (p2RemoteInputs.jump && !p2LastRemoteInputs.jump) attemptJump(p2);
+                    if (p2RemoteInputs.shoot && !p2LastRemoteInputs.shoot && p2.upgrades.machineGun === 0 && p2.shootCooldown === 0) fireWeapon(p2, false);
+                    p2LastRemoteInputs = { ...p2RemoteInputs };
+                }
+
+                updatePlayerState(p1);
+                updatePlayerState(p2);
+
+                if (!p1.isDead) handleInputP1();
+                if (!p2.isDead) handleInputP2();
+
+                physicsProcess(p1);
+                physicsProcess(p2);
+                handlePlayerToPlayerCollision();
+                updateBullets();
+                updateTrees();
+                updateDropItems();
+            }
+
+            // Particles are completely visual, both clients process standard velocity updates
+            updateParticles();
+
+            // Sync visual UI indicators
+            syncHUD();
+
+            networkSyncTick();
+        }
+
+        function updatePlayerState(p) {
+            // Tick down cool-downs and status frames
+            if (p.chopCooldown > 0) p.chopCooldown--;
+            if (p.shootCooldown > 0) p.shootCooldown--;
+            if (p.invulnFrames > 0) p.invulnFrames--;
+
+            if (p.isChopping) {
+                p.chopAnimTimer--;
+                if (p.chopAnimTimer <= 0) p.isChopping = false;
+            }
+
+            // Check if player fell into pit or HP hit zero
+            if (p.hp <= 0 && !p.isDead) {
+                p.isDead = true;
+                p.respawnTimer = 120; // 2 seconds at 60fps
+                spawnExplosion(p.x + p.width/2, p.y + p.height/2);
+                playSound('hit');
+
+                // Reward other player instantly with big bonus points
+                const killer = p.id === 1 ? p2 : p1;
+                killer.points += 30;
+                killer.totalPoints += 30;
+                showNotice(`Player ${killer.id} blasted Player ${p.id}! (+20 PTS)`, killer.color);
+            }
+
+            if (p.isDead) {
+                p.respawnTimer--;
+                if (p.respawnTimer <= 0) {
+                    respawnPlayer(p);
+                }
+            }
+        }
+
+        function respawnPlayer(p) {
+            p.isDead = false;
+            p.hp = p.maxHp + (p.upgrades.maxHp * 25);
+            p.ammo = p.maxAmmo;
+            p.x = p.id === 1 ? 150 : 850;
+            p.y = 100;
+            p.vx = 0;
+            p.vy = 0;
+            p.invulnFrames = 90; // 1.5 seconds invulnerability on respawn
+        }
+
+        // INPUT: Player 1 (W, A, S, D, E)
+        function handleInputP1() {
+            if (isOnline && myPlayerId !== 1) return;
+            
+            // Map both key sets if online
+            const l = isOnline ? (keys['a'] || keys['ArrowLeft']) : keys['a'];
+            const r = isOnline ? (keys['d'] || keys['ArrowRight']) : keys['d'];
+            const s = isOnline ? (keys['s'] || keys['ArrowDown']) : keys['s'];
+            const c = isOnline ? (keys['e'] || keys['Shift'] || keys['shift']) : keys['e'];
+
+            if (l) { p1.vx -= RUN_ACCEL; p1.facingRight = false; }
+            else if (r) { p1.vx += RUN_ACCEL; p1.facingRight = true; }
+
+            if (s && p1.upgrades.machineGun > 0 && p1.shootCooldown === 0) fireWeapon(p1, true);
+            if (c && p1.chopCooldown === 0) axeChop(p1);
+        }
+
+        function handleInputP2() {
+            if (isOnline && myPlayerId !== 1) return; // Client skips physics calculation for P2
+
+            // Use network inputs if Host, or right-side keys if local offline
+            const l = isOnline ? p2RemoteInputs.left : keys['ArrowLeft'];
+            const r = isOnline ? p2RemoteInputs.right : keys['ArrowRight'];
+            const s = isOnline ? p2RemoteInputs.shoot : keys['ArrowDown'];
+            const c = isOnline ? p2RemoteInputs.chop : (keys['Shift'] || keys['shift']);
+
+            if (l) { p2.vx -= RUN_ACCEL; p2.facingRight = false; }
+            else if (r) { p2.vx += RUN_ACCEL; p2.facingRight = true; }
+
+            if (s && p2.upgrades.machineGun > 0 && p2.shootCooldown === 0) fireWeapon(p2, true);
+            if (c && p2.chopCooldown === 0) axeChop(p2);
+        }
+
+        // Axe Chop Mechanics
+        function axeChop(p) {
+            p.isChopping = true;
+            p.chopAnimTimer = 12; // animation duration frames
+            p.chopCooldown = getChopCooldownMax(p);
+            playSound('chop');
+
+            // Define Axe swing reach box
+            const chopRange = 36;
+            const axeBox = {
+                x: p.facingRight ? p.x + p.width : p.x - chopRange,
+                y: p.y + p.height/2 - 20,
+                w: chopRange,
+                h: 40
+            };
+
+            // 1. Check if we hit any Tree
+            let treeHit = false;
+            trees.forEach(tree => {
+                if (tree.state === 'healthy') {
+                    // Tree trunk bounding box for chopping is around the base area
+                    const trunkWidth = tree.width + 12;
+                    const treeLeft = tree.x - trunkWidth/2;
+                    const treeRight = tree.x + trunkWidth/2;
+                    const treeTop = tree.y - tree.height;
+                    const treeBottom = tree.y;
+
+                    if (rectIntersect(axeBox, { x: treeLeft, y: treeTop, w: trunkWidth, h: tree.height })) {
+                        // Swing hits tree!
+                        treeHit = true;
+                        
+                        // Deal chop damage
+                        tree.health -= 25; // 4 chops to bring down a fresh tree
+                        
+                        // Spray chips
+                        spawnAxeChips(tree.x, p.y + p.height/2, '#854d0e');
+
+                        if (tree.health <= 0) {
+                            treeFelled(tree, p);
+                        } else {
+                            // Minor reward for simply working on the tree
+                            p.points += 1;
+                            p.totalPoints += 1;
+                        }
+                    }
+                }
+            });
+
+            // 2. Can also chop the OTHER player (melee strike)
+            const opponent = p.id === 1 ? p2 : p1;
+            if (!opponent.isDead && opponent.invulnFrames === 0) {
+                const oppBox = { x: opponent.x, y: opponent.y, w: opponent.width, h: opponent.height };
+                if (rectIntersect(axeBox, oppBox)) {
+                    // Melee Chop Hit!
+                    opponent.hp -= 15;
+                    opponent.vx += p.facingRight ? 12 : -12; // Big knockback
+                    opponent.vy = -3;
+                    opponent.invulnFrames = 25;
+                    spawnBloodSpurt(opponent.x + opponent.width/2, opponent.y + opponent.height/2);
+                    playSound('hit');
+                    
+                    p.points += 5;
+                    p.totalPoints += 5;
+                    showNotice(`P${p.id} chopped P${opponent.id}! Melee!`, p.color);
+                }
+            }
+
+            // Create axe slash light beam visual
+            particles.push({
+                x: p.facingRight ? p.x + p.width + 5 : p.x - 25,
+                y: p.y + p.height/2,
+                vx: p.facingRight ? 4 : -4,
+                vy: 0,
+                size: 14,
+                color: 'rgba(255, 255, 255, 0.7)',
+                life: 6,
+                maxLife: 6,
+                isSlashArc: true,
+                facingRight: p.facingRight
+            });
+        }
+
+        // Tree falling triggers rich rewards & items
+        function treeFelled(tree, logger) {
+            tree.state = 'stump';
+            tree.stumpTimer = 360; // Regenerates in 6 seconds
+            tree.health = 0;
+            playSound('woodfall');
+
+            // Explode big chip display
+            spawnAxeChips(tree.x, tree.y - 40, '#a16207');
+            spawnAxeChips(tree.x, tree.y - 80, '#22c55e'); // Green foliage chips too
+
+            // Logger gets large point windfall
+            logger.points += 18;
+            logger.totalPoints += 18;
+
+            // Spawn floating resource drops from the top of the tree fall area
+            const dropY = tree.y - tree.height + 20;
+            
+            // ALWAYS spawn at least 1 Ammo package, 1 Health apple, and 1 direct bonus points item
+            spawnDrop(tree.x - 20, dropY, 'ammo');
+            spawnDrop(tree.x + 20, dropY, 'health');
+            
+            // Random chance for high-tier dynamic resource or score multiplier star
+            const rand = Math.random();
+            if (rand < 0.4) {
+                spawnDrop(tree.x, dropY - 20, 'superPoints');
+            } else if (rand < 0.75) {
+                spawnDrop(tree.x, dropY - 20, 'shieldHeal');
+            } else {
+                spawnDrop(tree.x, dropY - 20, 'ammo');
+            }
+
+            showNotice(`P${logger.id} harvested a tree! (+12 PTS)`, logger.color);
+        }
+
+        // Loot drops mechanics
+        function spawnDrop(x, y, type) {
+            dropItems.push({
+                x: x,
+                y: y,
+                vx: (Math.random() - 0.5) * 5,
+                vy: -Math.random() * 5 - 3,
+                width: 20,
+                height: 20,
+                type: type, // 'ammo', 'health', 'superPoints', 'shieldHeal'
+                gravity: 0.25,
+                bounceCount: 0,
+                life: 450 // disappear in 7.5 seconds if untouched
+            });
+        }
+
+        // Universal Weapon Firing
+        function fireWeapon(p, isMachineGun) {
+            if (!isMachineGun && p.ammo <= 0) {
+                playSound('hit'); showNotice(`P${p.id} out of AMMO!`, '#fca5a5');
+                p.shootCooldown = 25; return;
+            }
+
+            playSound('shoot');
+            const flashX = p.facingRight ? p.x + p.width + 10 : p.x - 10;
+            const flashY = p.y + p.height/2 - 6;
+            spawnExplosion(flashX, flashY);
+
+            if (isMachineGun) {
+                // Machine Gun Spec
+                p.shootCooldown = 6; 
+                screenShakeAmount = 4;
+                const dir = p.facingRight ? 1 : -1;
+                
+                // NEW: +15% bullet speed multiplier per spreadControl tier
+                const mgSpeedMultiplier = 1 + (p.upgrades.spreadControl * 0.15);
+                
+                bullets.push({
+                    ownerId: p.id, x: flashX, y: flashY,
+                    vx: dir * (16 + (p.upgrades.bulletSpeed * 2)) * mgSpeedMultiplier, 
+                    vy: (Math.random() - 0.5) * 2,
+                    size: 3, damage: 7, life: 30, color: '#facc15'
+                });
+            } else {
+                // Standard Shotgun Spec
+                p.ammo--;
+                p.shootCooldown = 32;
+                screenShakeAmount = 14;
+                p.vx += p.facingRight ? -8 : 8; // Kickback
+                
+                const pelletCount = 5 + (p.upgrades.spreadControl * 2);
+                const baseVelocity = 12 + (p.upgrades.bulletSpeed * 4);
+                const spreadAngle = 0.35 - (p.upgrades.spreadControl * 0.05);
+
+                for (let i = 0; i < pelletCount; i++) {
+                    const centerAngle = p.facingRight ? 0 : Math.PI;
+                    const finalAngle = centerAngle + ((Math.random() - 0.5) * spreadAngle);
+                    bullets.push({
+                        ownerId: p.id, x: flashX, y: flashY,
+                        vx: Math.cos(finalAngle) * (baseVelocity + (Math.random() - 0.5) * 3),
+                        vy: Math.sin(finalAngle) * (baseVelocity + (Math.random() - 0.5) * 3),
+                        size: 4, damage: 8, life: 35, color: '#fbbf24'
+                    });
+                }
+            }
+        }
+
+        // Complete Physics handling for gravity, horizontal inertia and platforms collision
+        function physicsProcess(p) {
+            if (p.isDead) return;
+
+            // Apply gravity
+            p.vy += GRAVITY;
+            if (p.vy > TERMINAL_VELOCITY) p.vy = TERMINAL_VELOCITY;
+
+            // Apply horizontal drag (friction)
+            p.vx *= FRICTION;
+            if (Math.abs(p.vx) < 0.1) p.vx = 0;
+
+            // Pre-calculate positions
+            p.x += p.vx;
+            p.y += p.vy;
+
+            // Screen boundary clamping
+            if (p.x < 0) {
+                p.x = 0;
+                p.vx = 0;
+            }
+            if (p.x + p.width > canvas.width) {
+                p.x = canvas.width - p.width;
+                p.vx = 0;
+            }
+
+            // Fall zone (bottom screen limits) - respawns player and inflicts massive damage
+            if (p.y > canvas.height) {
+                p.hp -= 40;
+                p.vy = -12;
+                p.y = 100;
+                p.x = p.id === 1 ? 150 : 850;
+                p.invulnFrames = 60;
+                playSound('hit');
+                showNotice(`P${p.id} fell out of bounds! (-40 HP)`, '#f87171');
+            }
+
+            // Platform Collision Logic
+            p.onGround = false;
+
+            platforms.forEach(plat => {
+                // Check intersection with player
+                if (p.x + p.width > plat.x && p.x < plat.x + plat.w) {
+                    // Vertical resolution: Landing on top of platform
+                    if (p.vy >= 0 && (p.y + p.height - p.vy <= plat.y + 1) && (p.y + p.height >= plat.y)) {
+                        p.y = plat.y - p.height;
+                        p.vy = 0;
+                        p.onGround = true;
+                        p.jumpsUsed = 0;
+                    }
+                }
+            });
+        }
+
+        function handlePlayerToPlayerCollision() {
+            if (p1.isDead || p2.isDead) return;
+
+            // Check if players are overlapping
+            if (rectIntersect(
+                { x: p1.x, y: p1.y, w: p1.width, h: p1.height },
+                { x: p2.x, y: p2.y, w: p2.width, h: p2.height }
+            )) {
+                // Push them away horizontally based on relative position
+                const center1 = p1.x + p1.width/2;
+                const center2 = p2.x + p2.width/2;
+                const overlapDir = center1 < center2 ? -1 : 1;
+
+                p1.x += overlapDir * 1.5;
+                p2.x -= overlapDir * 1.5;
+
+                // Little bounce factor to prevent overlap gluing
+                p1.vx = overlapDir * 2;
+                p2.vx = -overlapDir * 2;
+            }
+        }
+
+        // Bullet physics updates
+        function updateBullets() {
+            for (let i = bullets.length - 1; i >= 0; i--) {
+                const b = bullets[i];
+                b.x += b.vx;
+                b.y += b.vy;
+                b.life--;
+
+                let removed = false;
+
+                // Check out of range or wall bounds
+                if (b.life <= 0 || b.x < 0 || b.x > canvas.width || b.y < 0 || b.y > canvas.height) {
+                    bullets.splice(i, 1);
+                    continue;
+                }
+
+                // Check collision with platforms (bullets disintegrate upon solid dirt)
+                for (let j = 0; j < platforms.length; j++) {
+                    const plat = platforms[j];
+                    if (b.x >= plat.x && b.x <= plat.x + plat.w && b.y >= plat.y && b.y <= plat.y + plat.h) {
+                        // Impact spark particle
+                        spawnExplosion(b.x, b.y);
+                        bullets.splice(i, 1);
+                        removed = true;
+                        break;
+                    }
+                }
+                if (removed) continue;
+
+                // Check collision with Trees (bullets can harm trees too!)
+                for (let t = 0; t < trees.length; t++) {
+                    const tree = trees[t];
+                    if (tree.state === 'healthy') {
+                        const trunkWidth = tree.width + 8;
+                        const tL = tree.x - trunkWidth/2;
+                        const tR = tree.x + trunkWidth/2;
+                        const tT = tree.y - tree.height;
+                        const tB = tree.y;
+
+                        if (b.x >= tL && b.x <= tR && b.y >= tT && b.y <= tB) {
+                            tree.health -= 5; // gun fire slowly eats wood too
+                            spawnAxeChips(b.x, b.y, '#713f12');
+                            const shooter = b.ownerId === 1 ? p1 : p2;
+                            if (shooter.upgrades.piercing === 0) {
+                                bullets.splice(i, 1);
+                                removed = true;
+                            }
+                            removed = true;
+
+                            if (tree.health <= 0) {
+                                const logger = b.ownerId === 1 ? p1 : p2;
+                                treeFelled(tree, logger);
+                            }
+                            break;
+                        }
+                    }
+                }
+                if (removed) continue;
+
+                // Check collision with enemy Player
+                const targetPlayer = b.ownerId === 1 ? p2 : p1;
+                const sourcePlayer = b.ownerId === 1 ? p1 : p0 = p2;
+
+                if (!targetPlayer.isDead && targetPlayer.invulnFrames === 0) {
+                    if (b.x >= targetPlayer.x && b.x <= targetPlayer.x + targetPlayer.width &&
+                        b.y >= targetPlayer.y && b.y <= targetPlayer.y + targetPlayer.height) {
+                        
+                        // Hurt!
+                        // Calculate Kevlar Armor Reduction
+                        let finalDamage = b.damage;
+                        if (targetPlayer.upgrades.kevlar > 0) {
+                            finalDamage = Math.max(0.5, b.damage - (targetPlayer.upgrades.kevlar * 1.5));
+                        }
+                        targetPlayer.hp -= finalDamage;
+                        
+                        // Apply pellet knockback
+                        targetPlayer.vx += b.vx * 0.15;
+                        targetPlayer.vy -= 1; // minor vertical lift
+                        
+                        // Blood splatters
+                        spawnBloodSpurt(b.x, b.y);
+                        bullets.splice(i, 1);
+                        
+                        // Gunner gets minor reward points for landed shot accuracy
+                        sourcePlayer.points += 2;
+                        sourcePlayer.totalPoints += 2;
+
+                        playSound('hit');
+                        break;
+                    }
+                }
+            }
+        }
+
+        // Tree growth timers & resurrection cycle
+        function updateTrees() {
+            trees.forEach(tree => {
+                if (tree.state === 'stump') {
+                    tree.stumpTimer--;
+                    if (tree.stumpTimer <= 0) {
+                        tree.state = 'growing';
+                        tree.growth = 0.1;
+                        tree.health = 1;
+                    }
+                } else if (tree.state === 'growing') {
+                    tree.growth += 0.005; // grows gradually
+                    tree.health = Math.floor(tree.growth * tree.maxHealth);
+                    if (tree.growth >= 1.0) {
+                        tree.growth = 1.0;
+                        tree.state = 'healthy';
+                        tree.health = tree.maxHealth;
+                    }
+                }
+            });
+        }
+
+        // Floating drops collection checks and gravity physics
+        function updateDropItems() {
+            for (let i = dropItems.length - 1; i >= 0; i--) {
+                const item = dropItems[i];
+                item.life--;
+
+                if (item.life <= 0) {
+                    dropItems.splice(i, 1);
+                    continue;
+                }
+
+                // Gravity & Movement
+                item.vy += item.gravity;
+                item.x += item.vx;
+                item.y += item.vy;
+
+                // Slow down horizontal slide
+                item.vx *= 0.95;
+
+                // Platform collisions for bouncing
+                platforms.forEach(plat => {
+                    if (item.x + item.width > plat.x && item.x < plat.x + plat.w) {
+                        if (item.vy > 0 && item.y + item.height - item.vy <= plat.y + 4 && item.y + item.height >= plat.y) {
+                            item.y = plat.y - item.height;
+                            item.vy = -item.vy * 0.5; // bouncy!
+                            item.bounceCount++;
+                        }
+                    }
+                });
+
+                // Screen boundaries limits
+                if (item.x < 0) { item.x = 0; item.vx = -item.vx; }
+                if (item.x + item.width > canvas.width) { item.x = canvas.width - item.width; item.vx = -item.vx; }
+
+                // Magnetize towards closest player to make grabbing intuitive & super smooth
+                [p1, p2].forEach(p => {
+                    if (!p.isDead) {
+                        const dx = (p.x + p.width/2) - (item.x + item.width/2);
+                        const dy = (p.y + p.height/2) - (item.y + item.height/2);
+                        const dist = Math.sqrt(dx * dx + dy * dy);
+
+                        if (dist < 100) {
+                            // pull towards player
+                            item.vx += (dx / dist) * 0.6;
+                            item.vy += (dy / dist) * 0.6;
+                        }
+                    }
+                });
+
+                // Check collection overlap by players
+                let collected = false;
+                const players = [p1, p2];
+
+                for (let j = 0; j < players.length; j++) {
+                    const p = players[j];
+                    if (!p.isDead) {
+                        if (rectIntersect(
+                            { x: p.x, y: p.y, w: p.width, h: p.height },
+                            { x: item.x, y: item.y, w: item.width, h: item.height }
+                        )) {
+                            // Gained!
+                            applyPickupReward(p, item);
+                            playSound('pickup');
+                            dropItems.splice(i, 1);
+                            collected = true;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        function applyPickupReward(p, item) {
+            switch(item.type) {
+                case 'ammo':
+                    p.ammo = Math.min(p.maxAmmo, p.ammo + 2);
+                    p.points += 2;
+                    p.totalPoints += 2;
+                    // Green sparkle splash
+                    showGrabText(item.x, item.y, "+2 Shells", '#eab308');
+                    break;
+                case 'health':
+                    const maxHp = p.maxHp;
+                    p.hp = Math.min(maxHp, p.hp + 20);
+                    p.points += 2;
+                    p.totalPoints += 2;
+                    showGrabText(item.x, item.y, "+20 HP", '#10b981');
+                    break;
+                case 'superPoints':
+                    p.points += 35;
+                    p.totalPoints += 35;
+                    showGrabText(item.x, item.y, "⭐ BONUS STAR (+35 PTS)", '#fbbf24');
+                    break;
+                case 'shieldHeal':
+                    p.hp = Math.min(p.maxHp, p.hp + 40);
+                    p.ammo = Math.min(p.maxAmmo, p.ammo + 3);
+                    p.points += 5;
+                    p.totalPoints += 5;
+                    showGrabText(item.x, item.y, "🌟 OVERDRIVE LUNCH (+40HP/+3AMMO)", '#06b6d4');
+                    break;
+            }
+        }
+
+        // Quick overlay floating text to make score updates exciting
+        let grabTexts = [];
+        function showGrabText(x, y, text, color) {
+            grabTexts.push({
+                x: x,
+                y: y,
+                text: text,
+                color: color,
+                life: 60
+            });
+        }
+
+        function updateParticles() {
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const pt = particles[i];
+                pt.life--;
+
+                if (pt.life <= 0) {
+                    particles.splice(i, 1);
+                    continue;
+                }
+
+                // Gravity factor
+                if (pt.gravity) {
+                    pt.vy += pt.gravity;
+                }
+
+                pt.x += pt.vx;
+                pt.y += pt.vy;
+
+                if (pt.rotVel) {
+                    pt.rotation += pt.rotVel;
+                }
+            }
+        }
+
+        // AABB Rectangle Intersection helper
+        function rectIntersect(r1, r2) {
+            return r1.x < r2.x + r2.w &&
+                   r1.x + r1.w > r2.x &&
+                   r1.y < r2.y + r2.h &&
+                   r1.y + r1.h > r2.y;
+        }
+
+        // VISUAL GRAPHICS ENGINE (Canvas Render)
+        function draw() {
+            ctx.save();
+            
+            // Apply Screen Shake transforms
+            if (screenShakeAmount > 0) {
+                const shakeX = (Math.random() - 0.5) * screenShakeAmount;
+                const shakeY = (Math.random() - 0.5) * screenShakeAmount;
+                ctx.translate(shakeX, shakeY);
+            }
+
+            // Clear Background
+            ctx.fillStyle = '#0f172a'; // Deep slate
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw Background environment silhouette (Stars, Mountain outline)
+            drawBackdropDesign();
+
+            // Draw Platforms
+            drawPlatforms();
+
+            // Draw Trees
+            drawTrees();
+
+            // Draw Floating Item Drops
+            drawDrops();
+
+            // Draw Players
+            drawPlayer(p1);
+            drawPlayer(p2);
+
+            // Draw Shotgun Shell Bullets
+            drawBullets();
+
+            // Draw Explosive Particles & Sparks
+            drawParticles();
+
+            // Draw Floating Item Grab notifications
+            drawFloatingTexts();
+
+            ctx.restore();
+        }
+
+        function drawBackdropDesign() {
+            // Draw retro starry layout
+            ctx.fillStyle = "rgba(255, 255, 255, 0.15)";
+            for (let i = 1; i <= 5; i++) {
+                ctx.fillRect(150 * i, 120 + (i % 2 === 0 ? 50 : -20), 4, 4);
+                ctx.fillRect(120 * i + 80, 240 + (i % 2 !== 0 ? 30 : -40), 3, 3);
+            }
+
+            // Distant mountain ranges silhouettes
+            ctx.fillStyle = '#1e293b';
+            ctx.beginPath();
+            ctx.moveTo(0, 560);
+            ctx.lineTo(200, 360);
+            ctx.lineTo(400, 560);
+            ctx.lineTo(600, 320);
+            ctx.lineTo(800, 560);
+            ctx.lineTo(1000, 390);
+            ctx.lineTo(1000, 560);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.fillStyle = '#111827';
+            ctx.beginPath();
+            ctx.moveTo(0, 560);
+            ctx.lineTo(300, 420);
+            ctx.lineTo(550, 560);
+            ctx.lineTo(800, 450);
+            ctx.lineTo(1000, 560);
+            ctx.closePath();
+            ctx.fill();
+        }
+
+        function drawPlatforms() {
+            platforms.forEach(plat => {
+                // Platform fill
+                ctx.fillStyle = plat.isFloor ? '#065f46' : '#334155'; // green floor base, gray sub-ledges
+                ctx.fillRect(plat.x, plat.y, plat.w, plat.h);
+
+                // Platform Highlight outline rim
+                ctx.strokeStyle = plat.isFloor ? '#10b981' : '#64748b';
+                ctx.lineWidth = 3;
+                ctx.strokeRect(plat.x, plat.y, plat.w, plat.h);
+
+                // Little grass tufts on top of standard ledge
+                if (!plat.isFloor) {
+                    ctx.fillStyle = '#059669';
+                    ctx.fillRect(plat.x + 10, plat.y - 3, plat.w - 20, 3);
+                }
+            });
+        }
+
+        function drawTrees() {
+            trees.forEach(tree => {
+                if (tree.state === 'healthy' || tree.state === 'growing') {
+                    const currentHeight = tree.height * tree.growth;
+                    
+                    // Draw trunk base wood
+                    ctx.fillStyle = '#78350f'; // rich brown
+                    const tWidth = tree.width * tree.growth;
+                    ctx.fillRect(tree.x - tWidth/2, tree.y - currentHeight, tWidth, currentHeight);
+
+                    // Bark textures details
+                    ctx.fillStyle = '#451a03';
+                    ctx.fillRect(tree.x - tWidth/4, tree.y - currentHeight, tWidth/2, currentHeight);
+
+                    // Draw green leaves circles
+                    const foliageRadius = 38 * tree.growth;
+                    ctx.fillStyle = '#15803d'; // Leaf green
+                    ctx.beginPath();
+                    ctx.arc(tree.x, tree.y - currentHeight, foliageRadius, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // Overlay lighter leaf highlight
+                    ctx.fillStyle = '#22c55e';
+                    ctx.beginPath();
+                    ctx.arc(tree.x - 8 * tree.growth, tree.y - currentHeight - 8 * tree.growth, foliageRadius * 0.7, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // Display growing percentage bar if not yet fully matured
+                    if (tree.state === 'growing') {
+                        ctx.fillStyle = 'rgba(0,0,0,0.6)';
+                        ctx.fillRect(tree.x - 20, tree.y - currentHeight - 65, 40, 6);
+                        ctx.fillStyle = '#eab308';
+                        ctx.fillRect(tree.x - 20, tree.y - currentHeight - 65, 40 * tree.growth, 6);
+                    } else {
+                        // Display Health bar of tree if damaged
+                        if (tree.health < tree.maxHealth) {
+                            const hpPercent = tree.health / tree.maxHealth;
+                            ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+                            ctx.fillRect(tree.x - 16, tree.y - 12, 32, 5);
+                            ctx.fillStyle = '#fb923c'; // Orange warning
+                            ctx.fillRect(tree.x - 16, tree.y - 12, 32 * hpPercent, 5);
+                        }
+                    }
+                } else if (tree.state === 'stump') {
+                    // Just draw stump base
+                    ctx.fillStyle = '#451a03';
+                    ctx.fillRect(tree.x - 10, tree.y - 20, 20, 20);
+
+                    // Rings outline details
+                    ctx.fillStyle = '#d97706';
+                    ctx.beginPath();
+                    ctx.ellipse(tree.x, tree.y - 20, 10, 4, 0, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // Regeneration timer countdown bar above stump
+                    const progress = (360 - tree.stumpTimer) / 360;
+                    ctx.fillStyle = 'rgba(0,0,0,0.5)';
+                    ctx.fillRect(tree.x - 15, tree.y - 30, 30, 4);
+                    ctx.fillStyle = '#3b82f6';
+                    ctx.fillRect(tree.x - 15, tree.y - 30, 30 * progress, 4);
+                }
+            });
+        }
+
+        function drawPlayer(p) {
+            if (p.isDead) return;
+
+            // Flash effect if invulnerable
+            if (p.invulnFrames > 0 && Math.floor(p.invulnFrames / 4) % 2 === 0) {
+                return;
+            }
+
+            ctx.save();
+            ctx.translate(p.x, p.y);
+
+            // Highlight glow back ring
+            ctx.fillStyle = p.id === 1 ? 'rgba(59, 130, 246, 0.15)' : 'rgba(239, 68, 68, 0.15)';
+            ctx.beginPath();
+            ctx.arc(p.width/2, p.height/2, 28, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 1. Draw Player Body Trunk
+            ctx.fillStyle = p.color;
+            ctx.fillRect(0, 0, p.width, p.height - 10);
+
+            // Striped overalls/suspender strap style details
+            ctx.fillStyle = '#1e293b';
+            ctx.fillRect(4, p.height - 18, p.width - 8, 8); // pants bottom
+            ctx.fillRect(6, 12, 4, p.height - 24); // suspender L
+            ctx.fillRect(p.width - 10, 12, 4, p.height - 24); // suspender R
+
+            // Legs/Boots
+            ctx.fillStyle = '#78350f'; // Heavy boots
+            ctx.fillRect(2, p.height - 10, 12, 10);
+            ctx.fillRect(p.width - 14, p.height - 10, 12, 10);
+
+            // 2. Draw Lumberjack Beard & Face
+            ctx.fillStyle = '#ffedd5'; // skin peach
+            ctx.fillRect(6, 4, p.width - 12, 12);
+
+            // Beard
+            ctx.fillStyle = p.id === 1 ? '#1e3a8a' : '#7f1d1d'; // blueish or dark red-brown beards
+            ctx.fillRect(4, 11, p.width - 8, 7);
+
+            // Lumberjack Flannel Cap
+            ctx.fillStyle = p.id === 1 ? '#2563eb' : '#dc2626';
+            ctx.fillRect(2, -4, p.width - 4, 8); // cap band
+            ctx.fillStyle = '#ffffff'; // white pompom accent on top!
+            ctx.fillRect(p.width/2 - 4, -8, 8, 4);
+
+            // Eyes
+            ctx.fillStyle = '#000000';
+            const eyeOffset = p.facingRight ? 6 : -6;
+            ctx.fillRect(p.width/2 + eyeOffset - 2, 6, 3, 3);
+
+            // 3. Draw Axe or Shotgun depending on action state
+            ctx.fillStyle = '#9ca3af'; // silver steel metal axe head
+            ctx.strokeStyle = '#78350f'; // wood pole
+            ctx.lineWidth = 3;
+
+            if (p.isChopping) {
+                // Swing rotation animation
+                const rot = p.facingRight ? 0.8 : -0.8;
+                ctx.translate(p.width/2, p.height/2);
+                ctx.rotate(rot);
+                
+                // Wooden shaft
+                ctx.beginPath();
+                ctx.moveTo(0, 0);
+                ctx.lineTo(24, -20);
+                ctx.stroke();
+
+                // Axe iron head
+                ctx.fillStyle = '#e5e7eb';
+                ctx.beginPath();
+                ctx.moveTo(20, -25);
+                ctx.lineTo(34, -28);
+                ctx.lineTo(30, -10);
+                ctx.lineTo(16, -15);
+                ctx.closePath();
+                ctx.fill();
+            } else {
+                // Idle carry shotgun
+                ctx.strokeStyle = '#4b5563'; // metal gun barrel
+                ctx.lineWidth = 4;
+                const gunStartX = p.width/2;
+                const gunStartY = p.height/2 + 4;
+                const gunLength = p.facingRight ? 24 : -24;
+
+                ctx.beginPath();
+                ctx.moveTo(gunStartX, gunStartY);
+                ctx.lineTo(gunStartX + gunLength, gunStartY);
+                ctx.stroke();
+
+                // Wooden grip stock
+                ctx.strokeStyle = '#78350f';
+                ctx.lineWidth = 5;
+                ctx.beginPath();
+                ctx.moveTo(gunStartX, gunStartY);
+                ctx.lineTo(gunStartX - (p.facingRight ? 6 : -6), gunStartY + 3);
+                ctx.stroke();
+            }
+
+            ctx.restore();
+        }
+
+        function drawBullets() {
+            bullets.forEach(b => {
+                ctx.fillStyle = '#fbbf24'; // hot golden tracers
+                ctx.beginPath();
+                ctx.arc(b.x, b.y, b.size, 0, Math.PI*2);
+                ctx.fill();
+
+                // Small tracer path trailing behind bullet pellet
+                ctx.strokeStyle = 'rgba(251, 191, 36, 0.4)';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(b.x, b.y);
+                ctx.lineTo(b.x - b.vx * 1.5, b.y - b.vy * 1.5);
+                ctx.stroke();
+            });
+        }
+
+        function drawDrops() {
+            dropItems.forEach(item => {
+                ctx.save();
+                ctx.translate(item.x, item.y);
+
+                // Quick bounce scale animation
+                const bounceAnim = Math.sin(Date.now() / 150) * 2;
+                ctx.translate(0, bounceAnim);
+
+                if (item.type === 'ammo') {
+                    // Gold Shotgun cartridge design
+                    ctx.fillStyle = '#dc2626'; // red plastic casing
+                    ctx.fillRect(2, 4, 16, 12);
+                    ctx.fillStyle = '#fbbf24'; // brass metallic base
+                    ctx.fillRect(2, 16, 16, 4);
+
+                    ctx.strokeStyle = '#ffffff';
+                    ctx.lineWidth = 1;
+                    ctx.strokeRect(2, 4, 16, 16);
+                } else if (item.type === 'health') {
+                    // Red apple with green leaf
+                    ctx.fillStyle = '#ef4444';
+                    ctx.beginPath();
+                    ctx.arc(10, 12, 8, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    ctx.fillStyle = '#22c55e'; // green leaf
+                    ctx.fillRect(10, 2, 4, 4);
+                } else if (item.type === 'superPoints') {
+                    // Large shiny golden rotating star
+                    ctx.fillStyle = '#fbbf24';
+                    ctx.strokeStyle = '#ffffff';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    // Draw custom 5-pointed star
+                    for (let i = 0; i < 5; i++) {
+                        ctx.lineTo(Math.cos((18 + i * 72) * Math.PI / 180) * 10 + 10,
+                                   Math.sin((18 + i * 72) * Math.PI / 180) * 10 + 10);
+                        ctx.lineTo(Math.cos((54 + i * 72) * Math.PI / 180) * 4 + 10,
+                                   Math.sin((54 + i * 72) * Math.PI / 180) * 4 + 10);
+                    }
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.stroke();
+                } else if (item.type === 'shieldHeal') {
+                    // Cyan glowing medical core kit
+                    ctx.fillStyle = '#0e7490';
+                    ctx.fillRect(1, 4, 18, 14);
+                    // Blue Cross insignia
+                    ctx.fillStyle = '#67e8f9';
+                    ctx.fillRect(8, 6, 4, 10);
+                    ctx.fillRect(5, 9, 10, 4);
+                }
+
+                ctx.restore();
+            });
+        }
+
+        function drawParticles() {
+            particles.forEach(pt => {
+                ctx.save();
+                ctx.fillStyle = pt.color;
+
+                if (pt.isSlashArc) {
+                    // Render axe sweep swing beam
+                    ctx.strokeStyle = pt.color;
+                    ctx.lineWidth = 4;
+                    ctx.beginPath();
+                    // draw half moon arc
+                    ctx.arc(pt.x, pt.y, pt.size, -Math.PI / 3, Math.PI / 3, !pt.facingRight);
+                    ctx.stroke();
+                } else {
+                    // Standard physical particles
+                    ctx.translate(pt.x, pt.y);
+                    if (pt.rotation) {
+                        ctx.rotate(pt.rotation);
+                    }
+                    ctx.fillRect(-pt.size/2, -pt.size/2, pt.size, pt.size);
+                }
+
+                ctx.restore();
+            });
+        }
+
+        function drawFloatingTexts() {
+            for (let i = grabTexts.length - 1; i >= 0; i--) {
+                const gt = grabTexts[i];
+                gt.life--;
+                if (gt.life <= 0) {
+                    grabTexts.splice(i, 1);
+                    continue;
+                }
+
+                // Rise upwards
+                gt.y -= 0.8;
+
+                ctx.fillStyle = gt.color;
+                ctx.font = 'bold 20px VT323';
+                ctx.textAlign = 'center';
+                ctx.shadowColor = 'black';
+                ctx.shadowBlur = 4;
+                ctx.fillText(gt.text, gt.x, gt.y);
+                ctx.shadowBlur = 0; // reset
+            }
+        }
+    </script>
+</body>
+</html>
