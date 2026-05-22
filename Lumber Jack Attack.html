@@ -490,7 +490,7 @@
             spreadControl: { name: "Choke Barrel (+2 extra pellets)", basePrice: 45, max: 4, desc: "Increases number of shotgun pellets" },
             doubleJump: { name: "Pneumatic Boots (Double Jump)", basePrice: 60, max: 1, desc: "Allows jumping once in mid-air" },
             regen: { name: "Vampiric Sap (HP Regen)", basePrice: 75, max: 3, desc: "Regenerate health over time" },
-            machineGun: { name: "Gatling Mod (Auto-Fire)", basePrice: 130, max: 1, desc: "Hold to fire rapidly. 0 ammo cost, lower damage." },
+            machineGun: { name: "Gatling Mod (Auto-Fire)", basePrice: 130, max: 1, desc: "Hold to fire rapidly. 0 ammo cost, no bursts." },
             kevlar: { name: "Flannel Kevlar (-Armor)", basePrice: 60, max: 3, desc: "Reduces incoming bullet damage per hit." },
             piercing: { name: "Tungsten Rounds (Pierce)", basePrice: 300, max: 1, desc: "Bullets pass cleanly through trees." }
         };
@@ -1434,14 +1434,14 @@
                 screenShakeAmount = 4;
                 const dir = p.facingRight ? 1 : -1;
                 
-                // NEW: +15% bullet speed multiplier per spreadControl tier
-                const mgSpeedMultiplier = 1 + (p.upgrades.spreadControl * 0.15);
+                // NEW: +30% bullet speed multiplier per spreadControl tier
+                const mgSpeedMultiplier = 1 + (p.upgrades.spreadControl * 0.30);
                 
                 bullets.push({
                     ownerId: p.id, x: flashX, y: flashY,
                     vx: dir * (16 + (p.upgrades.bulletSpeed * 2)) * mgSpeedMultiplier, 
                     vy: (Math.random() - 0.5) * 2,
-                    size: 3, damage: 7, life: 30, color: '#facc15'
+                    size: 3, damage: 8, life: 30, color: '#facc15'
                 });
             } else {
                 // Standard Shotgun Spec
